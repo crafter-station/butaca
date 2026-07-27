@@ -178,6 +178,11 @@ export function agruparPorPelicula(
 
       const filas = fs.map((f) => ({
         hora: bold(f.dateTime.slice(-5)),
+        // El id de la función es el argumento de `butaca butacas`, y sin él en
+        // la tabla el usuario solo puede correr el ejemplo del pie: para
+        // cualquier otro horario no tiene de dónde sacarlo. Va con el nombre del
+        // comando que lo consume, no como "sessionId" pelado.
+        butacas: dim(f.sessionId),
         sala: dim(`sala ${f.theater.room}`),
         formato: variaFormato ? (f.format === "2D" ? dim(f.format) : blue(f.format)) : "",
         idioma: variaIdioma ? dim(f.language) : "",
@@ -186,7 +191,7 @@ export function agruparPorPelicula(
         " ": etiquetaOcupacion(f.seats.available, f.seats.capacity),
       }));
 
-      const cols = ["hora", "sala"];
+      const cols = ["hora", "butacas", "sala"];
       if (variaFormato) cols.push("formato");
       if (variaIdioma) cols.push("idioma");
       cols.push("libres", "", " ");
@@ -343,7 +348,7 @@ export async function runFunciones(
       visibles[0];
     if (sugerida) {
       out.push(
-        `\n${dim("Ver butacas:")} ${dim(`butaca butacas ${sugerida.sessionId} --cine ${options.cine}`)}  ${dim(italic(`(la de las ${sugerida.dateTime.slice(-5)}, sala ${sugerida.theater.room})`))}`,
+        `\n${dim("Ver butacas:")} ${dim(`butaca butacas ${sugerida.sessionId} --cine ${options.cine}`)}  ${dim(italic(`(las ${sugerida.dateTime.slice(-5)}; el número de cualquier otra función está en la columna butacas)`))}`,
       );
     }
 

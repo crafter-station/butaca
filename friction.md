@@ -36,6 +36,25 @@ Opened before Phase 1, per the skill.
   (emitir el comando, no el argumento) sin aplicar en el comando más usado.
   Ahora emite `butaca butacas <id> --cine <slug>` con una función real de la
   lista, la más próxima que todavía no empezó y tiene butacas.
+- [cli-build] **Emitir el comando no alcanza si el argumento no está en la
+  tabla.** Hunter lo vio de inmediato: "no tenemos forma de saber este num
+  161364". El pie daba un comando ejecutable para **una** función, y para
+  cualquier otro horario de las 23 el usuario no tenía de dónde sacar el
+  número. O sea el ejemplo funcionaba y la tabla seguía siendo un callejón.
+  Corregido con una columna `butacas` con el id de cada función, nombrada como
+  el comando que la consume y no como `sessionId`, y con el pie diciendo dónde
+  buscar el resto.
+  **Regla (extiende la 5):** un comando emitido resuelve el caso que muestra;
+  una columna resuelve todos. Si la fila de al lado no puede llegar a su propio
+  comando, falta el identificador en la tabla, no un ejemplo mejor. La prueba es
+  preguntar por la segunda fila, no por la que emitiste.
+- [cli-build] **Un fixture derivado del nombre rompió una aserción que contaba
+  nombres.** El helper de tests armaba `sessionId: \`${nombre}-${hora}\``, así
+  que al agregar el id a la tabla el título pasó a aparecer también dentro del
+  identificador y el test "el título aparece una sola vez" contó tres. El fallo
+  era del fixture, no del código. **Un fixture que deriva un campo de otro crea
+  un acoplamiento que no existe en los datos reales**, y las aserciones que
+  cuentan ocurrencias de texto lo cobran en cuanto el campo derivado se muestra.
 
 ### Ronda 15 (2026-07-27, la butaca ámbar era la respuesta)
 

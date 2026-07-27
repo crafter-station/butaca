@@ -131,9 +131,14 @@ describe("filtros de funciones", () => {
 });
 
 describe("agruparPorPelicula", () => {
+  // Los sessionId son numéricos como los reales, no derivados del nombre: el
+  // helper los armaba como `${nombre}-${hora}`, así que el título aparecía
+  // también dentro del id y cualquier aserción que contara ocurrencias del
+  // título contaba de más en cuanto el id llegó a la tabla.
+  let proximoId = 161000;
   const f = (nombre: string, hora: string, formato = "2D", idioma = "SUB"): Funcion =>
     ({
-      sessionId: `${nombre}-${hora}`,
+      sessionId: String(proximoId++),
       // Un corporateId por película: el agrupado usa esa clave y no el nombre,
       // para no descartar el identificador que necesita --peli.
       movie: { corporateId: `cid-${nombre}`, name: nombre },

@@ -127,6 +127,14 @@ documentación.
 **La pregunta que decide:** ¿puede el lector llegar al próximo comando sin salir
 de la pantalla que está mirando? Si la respuesta es no, falta el identificador.
 
+**Y hay que hacerse esa pregunta sobre la segunda fila, no sobre la que
+emitiste.** Agregamos un comando ejecutable al pie de una tabla de 23 funciones
+y el usuario respondió: "no tenemos forma de saber este número". El ejemplo
+andaba pegado tal cual, y para cualquiera de las otras 22 filas no había de dónde
+sacar el argumento. Un comando emitido resuelve el caso que muestra; una columna
+resuelve todos. Si la fila de al lado no puede armar su propio comando, lo que
+falta es el identificador en la tabla, no un ejemplo mejor.
+
 ## 6. Partir por accionabilidad, no por categoría del dominio
 
 El dominio daba tres estados. La persona distingue dos cosas: lo que puede hacer
