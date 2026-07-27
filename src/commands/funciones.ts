@@ -324,6 +324,29 @@ export async function runFunciones(
     const spark = sparklineDelDia(visibles);
     if (spark) out.push(spark);
 
+    // El próximo paso desde acá es ver las butacas de una función concreta, y
+    // ese comando necesita el sessionId, que no aparece en ninguna columna. Sin
+    // esta línea el usuario queda mirando 23 horarios sin saber cómo seguir.
+    // Se emite con una función real de la lista, no con un placeholder: un
+    // ejemplo que no funciona pegado es peor que no dar ejemplo.
+    const ahora = Date.now();
+    const conButacas = visibles.filter((f) => f.seats.available > 0);
+    // La primera de la lista suele ser una trasnoche ya pasada. Se prefiere la
+    // próxima que todavía no empezó; si todas pasaron, vale cualquiera con
+    // butacas, porque el ejemplo tiene que existir aunque no sea comprable.
+    const sugerida =
+      conButacas
+        .map((f) => ({ f, t: Date.parse(`${f.displayDate}T${f.dateTime.slice(-5)}:00`) }))
+        .filter((x) => Number.isFinite(x.t) && x.t >= ahora)
+        .sort((a, b) => a.t - b.t)[0]?.f ??
+      conButacas[0] ??
+      visibles[0];
+    if (sugerida) {
+      out.push(
+        `\n${dim("Ver butacas:")} ${dim(`butaca butacas ${sugerida.sessionId} --cine ${options.cine}`)}  ${dim(italic(`(la de las ${sugerida.dateTime.slice(-5)}, sala ${sugerida.theater.room})`))}`,
+      );
+    }
+
     // Comprar se hace en el sitio: el CLI deja el link con el cine ya elegido.
     // `?cine=` está verificado, `?fecha=` se ignora del lado de ellos.
     const primerPeli = visibles[0] ? slugs.get(visibles[0].movie.corporateId) : undefined;

@@ -5,6 +5,38 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 16 (2026-07-27, la barra saturada y el comando que faltaba)
+
+- [cli-build] **Una escala recortada satura y deja de informar justo donde
+  importa.** `barraOcupacion` escalaba hasta el 50 por ciento vendido, no hasta
+  el 100, para "coincidir con los cortes de `ocupacionDe`". Consecuencia medida
+  en salida real: la función de las 17:50 (54 por ciento vendido) y la de las
+  18:50 (78 por ciento) dibujaban **la misma barra llena**. Toda función arriba
+  del corte se veía idéntica, o sea la barra distinguía bien entre salas vacías
+  y dejaba de distinguir entre las que se están llenando, que es exactamente
+  donde el dato sirve para elegir.
+  **Regla:** una barra y una etiqueta categórica no tienen que compartir escala.
+  La etiqueta traduce a palabras y ahí vive el corte; la barra muestra magnitud y
+  quiere el rango completo. Atarlas convierte a la barra en una versión peor de
+  la etiqueta. Es el reverso exacto de la regla 2 (umbrales medidos): allá el
+  problema era una escala mal calibrada, acá una escala truncada, y las dos veces
+  el síntoma es el mismo, una columna donde casi todo se ve igual.
+- [cli-build] **El test protegía el bug.** Existía
+  `"la barra llena coincide con la etiqueta casi llena"`, que afirmaba que 50 por
+  ciento vendido llena la barra entera: o sea codificaba la saturación como
+  comportamiento deseado. Un test escrito desde la implementación en vez de desde
+  la pregunta del usuario ("¿cuál está más llena?") no falla cuando la
+  implementación está mal, la defiende. Reescrito como discriminación entre dos
+  funciones reales.
+- [cli-build] **`funciones` no decía cómo seguir.** Terminaba con el link de
+  compra al sitio, herencia de cuando el CLI era read-only, y nunca mencionaba
+  `butacas`. El `sessionId` que ese comando necesita no aparece en ninguna
+  columna de la tabla, así que el usuario veía 23 horarios sin ninguna forma de
+  pasar al siguiente paso desde la pantalla que estaba mirando. Es la regla 5
+  (emitir el comando, no el argumento) sin aplicar en el comando más usado.
+  Ahora emite `butaca butacas <id> --cine <slug>` con una función real de la
+  lista, la más próxima que todavía no empezó y tiene butacas.
+
 ### Ronda 15 (2026-07-27, la butaca ámbar era la respuesta)
 
 - [surface-recon] **Hunter preguntó qué era el color ámbar y resultó ser el dato

@@ -65,14 +65,28 @@ describe("barraOcupacion", () => {
   });
 
   it("satura en el ancho pedido y no lo excede", () => {
-    // 90 por ciento vendido esta arriba del tope de escala (50 por ciento).
+    // 90 por ciento vendido: la barra mide el ancho pedido igual.
     expect(anchoVisible(barraOcupacion(25, 250, 10))).toBe(10);
   });
 
-  it("la barra llena coincide con la etiqueta casi llena", () => {
-    const barra = barraOcupacion(125, 250, 10);
-    expect(ocupacionDe(125, 250)).toBe("casi llena");
-    expect(barra.split("█").length - 1).toBe(10);
+  // Regresión: la escala llegaba solo hasta el 50 por ciento vendido, así que
+  // toda función arriba de ese corte dibujaba la barra llena. Dos funciones
+  // reales de la misma película, una al 54 por ciento y otra al 78, se veían
+  // idénticas, o sea la barra dejaba de distinguir justo en el rango donde el
+  // dato importa para elegir. La etiqueta sigue marcando el corte en palabras.
+  it("distingue magnitudes por encima del 50 por ciento vendido", () => {
+    const llenos = (b: string) => b.split("█").length - 1;
+    const media = barraOcupacion(114, 250, 10); // 54 por ciento vendido
+    const alta = barraOcupacion(31, 143, 10); // 78 por ciento vendido
+
+    expect(ocupacionDe(114, 250)).toBe("casi llena");
+    expect(ocupacionDe(31, 143)).toBe("casi llena");
+    expect(llenos(media)).toBeLessThan(llenos(alta));
+  });
+
+  it("solo se llena entera cuando no queda ninguna butaca", () => {
+    expect(barraOcupacion(0, 250, 10).split("█").length - 1).toBe(10);
+    expect(barraOcupacion(125, 250, 10).split("█").length - 1).toBe(5);
   });
 
   it("respeta el ancho pedido siempre", () => {

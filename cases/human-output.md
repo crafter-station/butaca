@@ -281,6 +281,28 @@ venta, consultar sigue andando, probá más tarde".
 reconocerlo.** El costo es una expresión regular; el beneficio es que el usuario
 no busca el problema donde no está.
 
+## 18. Una barra y una etiqueta no comparten escala
+
+`barraOcupacion` escalaba hasta el 50 por ciento para que su tope coincidiera con
+el corte de la etiqueta. Resultado en salida real: una función al 54 por ciento
+vendido y otra al 78 dibujaban **la misma barra llena**.
+
+La barra distinguía bien entre salas vacías y dejaba de distinguir entre las que
+se están llenando, que es donde el dato sirve para decidir.
+
+**La etiqueta traduce a palabras y ahí vive el umbral; la barra muestra magnitud
+y quiere el rango completo.** Atarlas convierte a la barra en una versión peor de
+la etiqueta, que ya está al lado.
+
+Es el reverso de la regla 2: allá la escala estaba mal calibrada, acá estaba
+truncada, y el síntoma es idéntico, una columna donde casi todo se ve igual.
+
+**Y el test defendía el bug.** Se llamaba "la barra llena coincide con la
+etiqueta casi llena" y afirmaba que 50 por ciento vendido llena la barra entera:
+codificaba la saturación como comportamiento deseado. Un test escrito desde la
+implementación en vez de desde la pregunta del lector ("¿cuál está más llena?")
+no falla cuando la implementación está mal.
+
 ## Rastrillos técnicos
 
 Tres cosas que rompen apenas agregás estilo a algo que antes era plano:

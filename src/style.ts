@@ -60,9 +60,12 @@ const COLOR_OCUPACION: Record<Ocupacion, (t: string) => string> = {
  */
 export function barraOcupacion(available: number, capacity: number, ancho = 10): string {
   const vendido = capacity > 0 ? 1 - available / capacity : 0;
-  // Escala hasta 50 por ciento, no hasta 100, para que coincida con los cortes
-  // de ocupacionDe. Si no, una sala "casi llena" mostraría media barra.
-  const llenos = Math.min(ancho, Math.round((vendido / 0.5) * ancho));
+  // Escala hasta el 100 por ciento. Una escala recortada al 50 satura: una sala
+  // al 54 por ciento vendido y otra al 78 dibujaban la misma barra llena, así
+  // que la barra dejaba de distinguir justo entre las funciones donde importa.
+  // Los cortes de ocupacionDe siguen en 8/25/50 y ahora los marca la etiqueta,
+  // que es la que traduce el número a palabras; la barra muestra la magnitud.
+  const llenos = Math.min(ancho, Math.round(vendido * ancho));
   const estado = ocupacionDe(available, capacity);
   const pintar = COLOR_OCUPACION[estado];
   return pintar("█".repeat(llenos)) + dim("░".repeat(ancho - llenos));
