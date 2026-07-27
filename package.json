@@ -1,0 +1,24 @@
+{
+  "name": "butaca",
+  "version": "0.1.0",
+  "description": "CLI de carteleras y funciones de Cinemark Argentina",
+  "type": "module",
+  "bin": {
+    "butaca": "./dist/cli.js"
+  },
+  "files": ["dist", "skills", "README.md", "CONTRACT.md"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "build": "bun build src/cli.ts --target node --outfile dist/cli.js",
+    "prepublishOnly": "bun run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "bun-types": "^1.3.14",
+    "typescript": "^7.0.2"
+  }
+}

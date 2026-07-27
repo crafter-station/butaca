@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.scriptc/
+*.log
+
+# Capturas del recon: llevaban cookies de sesion vivas
+*.har
+*.png
+
+# Skills instaladas para trabajar en este repo, no son parte del CLI.
+# El SKILL.md que butaca publica vive en skills/butaca/.
+.agents/
+.claude/
+skills-lock.json
