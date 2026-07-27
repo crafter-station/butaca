@@ -5,6 +5,35 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 17 (2026-07-27, auditoría de documentación: el schema mentía)
+
+- [cli-build] **`schema` cubría 3 de 8 comandos.** Pedirle el shape de
+  `estrenos`, `butacas`, `reservar`, `auth` o del propio `schema` devolvía
+  `BAD_INPUT: No hay esquema para el comando "X"`. Los tres cubiertos eran los
+  del día 1; los cinco que faltaban se agregaron en rondas posteriores y nadie
+  volvió al archivo.
+  Esto es peor que las otras deudas de doc porque **`schema` es el contrato que
+  la skill pide justamente para que un agente no tenga que parsear `--help`**.
+  Un agente que consulta el shape de `reservar` y recibe "no hay esquema" no
+  concluye "la doc está incompleta", concluye **"el comando no existe"**, que es
+  exactamente el fallo que el comando existe para prevenir. Un contrato
+  incompleto es peor que uno ausente: sin `schema` el agente lee `--help`, con
+  un `schema` parcial confía y se equivoca.
+  **Regla:** un comando que enumera capacidades tiene que derivarse o testearse
+  contra la lista real. Cubierto con un test que compara las claves de `SCHEMAS`
+  contra los archivos de `src/commands/`, verificado quitando una entrada a
+  propósito para confirmar que falla.
+- [cli-build] **`--help` estaba completo y mi primer grep dijo que no.** Busqué
+  comandos con `grep -E "^  [a-z]+"` y no matcheó nada, así que casi anoto
+  "`--help` no lista los comandos" como hallazgo. La indentación real era
+  distinta. **Un grep que devuelve vacío prueba que el patrón no matchea, no que
+  la cosa no exista**, y es el mismo error de forma que el "mantenimiento" del
+  FAQ: leer la salida del instrumento como si fuera el hecho.
+- [cli-build] **`estrenos` faltaba en el README** aunque estaba en `--help`, en
+  `SKILL.md` y en el código. Se agregó en una ronda cuyo foco era otro. Es la
+  deuda de doc menos grave de las tres, porque el README es para humanos y el
+  humano tiene `--help` al lado.
+
 ### Ronda 16 (2026-07-27, la barra saturada y el comando que faltaba)
 
 - [cli-build] **Una escala recortada satura y deja de informar justo donde

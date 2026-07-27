@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { runButacas } from "../src/commands/butacas.js";
 import { runReservar } from "../src/commands/reservar.js";
 import type { Flags } from "../src/format.js";
+import { readdir } from "node:fs/promises";
+import { SCHEMAS } from "../src/commands/schema.js";
 
 const FLAGS: Flags = {
   json: true,
@@ -64,5 +66,32 @@ describe("butaca reservar: shape JSON, sin red", () => {
     expect(envelope.ok).toBe(false);
     expect(envelope.error?.code).toBe("BAD_INPUT");
     expect(envelope.error?.message).toContain("--asientos");
+  });
+});
+
+describe("schema cubre todos los comandos (regresión)", () => {
+  // `schema` existe para que un agente no tenga que parsear --help. Cuando
+  // quedó atrás cubría 3 de 8 comandos: estrenos, butacas, reservar, auth y el
+  // propio schema devolvían BAD_INPUT. Un contrato incompleto es peor que uno
+  // ausente, porque el agente que pide el que falta concluye que el comando no
+  // existe. Este test falla en cuanto se agrega un comando sin su shape.
+  it("todo comando con archivo en src/commands tiene entrada en SCHEMAS", async () => {
+    const dir = new URL("../src/commands/", import.meta.url);
+    const archivos = await readdir(dir);
+    const comandos = archivos
+      .filter((f) => f.endsWith(".ts"))
+      .map((f) => f.replace(/\.ts$/, ""))
+      .sort();
+
+    const cubiertos = Object.keys(SCHEMAS).sort();
+    expect(cubiertos).toEqual(comandos);
+  });
+
+  it("cada schema declara su versión y su shape", () => {
+    for (const [nombre, valor] of Object.entries(SCHEMAS)) {
+      const s = valor as { version?: string; shape?: unknown };
+      expect(typeof s.version, `${nombre} sin version`).toBe("string");
+      expect(s.shape, `${nombre} sin shape`).toBeDefined();
+    }
   });
 });

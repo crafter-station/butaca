@@ -34,7 +34,8 @@ butaca cines                       # los 24 complejos
 butaca cartelera                   # qué se está dando
 butaca cartelera --cine palermo    # qué se está dando en un complejo
 butaca funciones --cine palermo    # horarios con butacas libres
-butaca palermo                     # atajo de lo anterior
+butaca estrenos --cine palermo     # preventa y próximos estrenos
+butaca palermo                     # atajo de "funciones --cine"
 butaca schema                      # shapes de cada comando, para agentes
 ```
 

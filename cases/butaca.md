@@ -417,6 +417,40 @@ machine and had to be rotated. **A prompt that reads a secret must mask it from
 the first version**, because the failure mode is not the prompt, it is what the
 user does around it.
 
+### Round 17: auditing the docs, and a contract that lied
+
+A pass over the documentation, prompted by the user asking whether any round had
+produced a documentation finding. It had, and the worst one was not in a `.md`
+file at all.
+
+**`schema` covered 3 of 8 commands.** Asking for the shape of `estrenos`,
+`butacas`, `reservar`, `auth` or `schema` itself returned `BAD_INPUT: no schema
+for command "X"`. The three that worked were the day-one commands; the five
+added in later rounds never got an entry.
+
+This is worse than ordinary doc drift because **`schema` is the contract the
+skill prescribes specifically so an agent does not have to parse `--help`.** An
+agent that asks for `reservar`'s shape and is told there is no schema does not
+conclude "the docs are incomplete", it concludes **"this command does not
+exist"**, which is the exact failure the command exists to prevent. A partial
+contract is worse than an absent one: with no `schema` the agent falls back to
+`--help`, with a partial `schema` it trusts and is wrong.
+
+**A command that enumerates capabilities has to be derived from, or tested
+against, the real list.** Covered by a test comparing `SCHEMAS` keys against the
+files in `src/commands/`, and verified by deleting an entry to confirm it fails.
+
+**And one near-miss on method.** I grepped `--help` for commands with a pattern
+that assumed an indentation the file did not use, got nothing back, and was one
+step from recording "`--help` does not list the commands" as a finding. It lists
+all eight. **An empty grep proves the pattern did not match, not that the thing
+does not exist**, which is the same shape as the maintenance-FAQ near-miss: reading
+the instrument's output as the fact.
+
+`estrenos` was also missing from the README while present in `--help`, `SKILL.md`
+and the code. Least serious of the three: the README is for humans, and the human
+has `--help` right there.
+
 ## What I would do differently
 
 **Build fixtures that cross the boundaries the code sorts and filters on.** One
