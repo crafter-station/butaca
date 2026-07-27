@@ -372,11 +372,37 @@ theirs. Detecting the text changes the hint from "may be a temporary API problem
 (which sends the user to debug their own install) to "the provider cut online
 sales, browsing still works, try later".
 
+**Confirmed from the site itself, and the way to rule out a ban.** The open
+question was whether the outage was ours (rate-limited or blocked for the volume
+of test orders) or everyone's. Three measurements from the same IP settle it:
+public reads still return 200, so there is no IP block; `order-tickets` without
+credentials returns **401 before** reaching the suspension message, so the
+session filter runs first and the message does not depend on our account; and
+the purchase flow in a clean browser with no cookies ends at the ordinary login
+panel rather than a block. The user then reached checkout in his own browser and
+Cinemark showed him **the same text verbatim** in a red banner.
+
+**To separate "I got blocked" from "it is down for everyone", reproduce without
+credentials.** A failure that persists with no identity attached is not about
+your identity.
+
 **One near-miss worth keeping.** I grepped the site's homepage for
 "mantenimiento" to confirm the outage and found it, and was one step from writing
 that the site announced the suspension. It was the Cinemark Club FAQ ("no
 maintenance cost"). Reading the context around a match costs one command and
 dissolved the conclusion.
+
+**Third time the DOM lied and the screenshot corrected it.** Looking for
+showtimes on the listing page, my selector found none: the text is `19:20hs` and
+I was matching `19:20`. And the accessibility `snapshot` returned **only the
+cookie banner**, because it is modal and occludes the entire tree, which I read
+as "this page has no showtimes". All three times (the login panel in the original
+recon, the showtimes, the purchase button) the indirect instrument said "does not
+exist" and the capture showed the element on screen.
+
+**When an element is missing on a page the user sees working, the capture comes
+first, not after exhausting selectors.** And an open modal invalidates the whole
+accessibility tree, so dismissing it is a precondition for any structural read.
 
 **A test that passes `color: true` to a module that calls `shouldColor()`
 internally verifies the no-color branch while believing it verifies color.**

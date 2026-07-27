@@ -36,6 +36,31 @@ Opened before Phase 1, per the skill.
   **Regla:** cuando un upstream comunica un estado operativo solo por texto libre
   y no por código, vale reconocerlo explícitamente. Un hint genérico manda al
   usuario a debuggear su propia instalación por algo que está del otro lado.
+  **Confirmado del lado del sitio:** Hunter llegó al checkout en su navegador y
+  Cinemark le mostró **el mismo texto exacto** en un banner rojo. La sospecha de
+  que nos hubieran baneado por la cadencia de órdenes de prueba queda descartada
+  con evidencia de los dos lados: el CLI y el sitio propio dicen lo mismo.
+- [surface-recon] **Descartar un ban se hace con una prueba anónima, no
+  razonando.** La pregunta era si el corte era nuestro o de todos. Tres medidas
+  desde la misma IP la contestan: la lectura pública sigue en 200 (no hay bloqueo
+  por IP), `order-tickets` sin credenciales responde **401 antes** de llegar al
+  mensaje de suspensión (el filtro de sesión corre primero, así que el mensaje
+  no depende de nuestra cuenta), y el flujo de compra en un navegador limpio, sin
+  cookies ni sesión, termina en el panel de login normal en vez de un bloqueo.
+  **Regla:** para separar "me bloquearon a mí" de "está caído para todos",
+  reproducí sin credenciales. Un fallo que persiste sin identidad no es sobre tu
+  identidad.
+- [cli-build] **Tercera vez que el DOM me miente y el screenshot me corrige.**
+  Buscando los horarios en la cartelera, mi selector no encontró ninguno: el
+  texto es `19:20hs` y yo comparaba contra `19:20`. Y el `snapshot` de
+  accesibilidad devolvía **solo el banner de cookies**, porque es modal y tapa el
+  árbol entero, lo que leí como "la página no tiene horarios". Las tres veces
+  (login del recon original, este caso, y el botón de comprar) el instrumento
+  indirecto dijo "no existe" y la captura mostró el elemento en pantalla.
+  **Regla:** ante un "no encuentro el elemento" en una página que el usuario ve
+  funcionando, la captura va primero, no después de agotar los selectores. Y un
+  modal abierto invalida el árbol de accesibilidad completo, así que cerrarlo es
+  precondición de cualquier lectura estructural.
 - [cli-build] **Falsa alarma que casi documento como hallazgo.** Busqué la
   palabra "mantenimiento" en el home del sitio para confirmar el corte y la
   encontré: era del FAQ de Cinemark Club ("no tiene costo de mantenimiento
