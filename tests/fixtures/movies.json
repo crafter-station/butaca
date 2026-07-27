@@ -1,0 +1,140 @@
+{
+  "data": [
+    {
+      "id": "e9b07963-2d7a-46a8-b737-6ebf7801a734",
+      "corporateId": "109144",
+      "slug": "toy-story-5",
+      "title": "TOY STORY 5",
+      "recommended": true,
+      "openingDate": "2026-06-18T00:00:00.000Z",
+      "runTime": 102,
+      "premiere": false,
+      "status": "SHOWING_NOW",
+      "posterUrl": "https://cdn.cinemark.com.ar/content/posters/HO00012393.jpg",
+      "rating": "G",
+      "hasRelaxedFunctions": false,
+      "tags": [],
+      "formats": [
+        {
+          "name": "3D",
+          "shortName": "3D"
+        },
+        {
+          "name": "4D E-MOTION",
+          "shortName": "4D"
+        },
+        {
+          "name": "D-BOX",
+          "shortName": "DBOX"
+        },
+        {
+          "name": "2D",
+          "shortName": "2D"
+        },
+        {
+          "name": "PREMIER",
+          "shortName": "PRE"
+        }
+      ],
+      "order": 1,
+      "languages": [
+        {
+          "name": "CASTELLANO",
+          "shortName": "CAST"
+        }
+      ]
+    },
+    {
+      "id": "0fdb5583-3d8f-418a-bcaf-789681c17dec",
+      "corporateId": "110137",
+      "slug": "la-odisea",
+      "title": "LA ODISEA",
+      "recommended": true,
+      "openingDate": "2026-07-16T00:00:00.000Z",
+      "runTime": 175,
+      "premiere": false,
+      "status": "SHOWING_NOW",
+      "posterUrl": "https://cdn.cinemark.com.ar/content/posters/HO00012557.jpg",
+      "rating": "SP",
+      "hasRelaxedFunctions": false,
+      "tags": [],
+      "formats": [
+        {
+          "name": "2D",
+          "shortName": "2D"
+        },
+        {
+          "name": "4D E-MOTION",
+          "shortName": "4D"
+        },
+        {
+          "name": "COMFORT",
+          "shortName": "Comfort"
+        },
+        {
+          "name": "XD DIGITAL",
+          "shortName": "XD"
+        },
+        {
+          "name": "D-BOX",
+          "shortName": "DBOX"
+        },
+        {
+          "name": "PREMIER",
+          "shortName": "PRE"
+        }
+      ],
+      "order": 2,
+      "languages": [
+        {
+          "name": "CASTELLANO",
+          "shortName": "CAST"
+        },
+        {
+          "name": "SUBTITULADA",
+          "shortName": "SUB"
+        }
+      ]
+    },
+    {
+      "id": "467e0912-9989-4795-9867-43a8411f3204",
+      "corporateId": "109210",
+      "slug": "minions-monstruos",
+      "title": "MINIONS & MONSTRUOS",
+      "recommended": true,
+      "openingDate": "2026-07-01T00:00:00.000Z",
+      "runTime": 90,
+      "premiere": false,
+      "status": "SHOWING_NOW",
+      "posterUrl": "https://cdn.cinemark.com.ar/content/posters/HO00012477.jpg",
+      "rating": "G",
+      "hasRelaxedFunctions": false,
+      "tags": [],
+      "formats": [
+        {
+          "name": "3D",
+          "shortName": "3D"
+        },
+        {
+          "name": "2D",
+          "shortName": "2D"
+        },
+        {
+          "name": "D-BOX",
+          "shortName": "DBOX"
+        },
+        {
+          "name": "PREMIER",
+          "shortName": "PRE"
+        }
+      ],
+      "order": 3,
+      "languages": [
+        {
+          "name": "CASTELLANO",
+          "shortName": "CAST"
+        }
+      ]
+    }
+  ]
+}

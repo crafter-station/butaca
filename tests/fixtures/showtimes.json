@@ -1,0 +1,128 @@
+{
+  "data": [
+    {
+      "movieId": "HO00012548",
+      "movieName": "LA ODISEA",
+      "corporateId": "110137",
+      "tags": [],
+      "language": {
+        "id": "3967bae2-8288-4f36-995f-259683c67f21",
+        "name": "SUBTITULADA",
+        "shortName": "SUB"
+      },
+      "formats": [
+        {
+          "id": "3",
+          "name": "2D",
+          "shortName": "2D"
+        }
+      ],
+      "theaterId": "733",
+      "theaterRoom": "4",
+      "sessionId": "161235",
+      "sessionFormat": "2D",
+      "sessionDateTime": "2026-07-27T11:30:00.000Z",
+      "sessionDisplayDate": "2026-07-27",
+      "isLateNightSession": false,
+      "occupation": {
+        "availableSeats": 247,
+        "capacity": 250,
+        "status": "HIGH"
+      },
+      "premiere": true
+    },
+    {
+      "movieId": "HO00011927",
+      "movieName": "TOY STORY 5",
+      "corporateId": "109144",
+      "tags": [],
+      "language": {
+        "id": "c3beee39-d7e5-4c81-af9c-ca3a3e8bec66",
+        "name": "CASTELLANO",
+        "shortName": "CAST"
+      },
+      "formats": [
+        {
+          "id": "3",
+          "name": "2D",
+          "shortName": "2D"
+        }
+      ],
+      "theaterId": "733",
+      "theaterRoom": "6",
+      "sessionId": "161243",
+      "sessionFormat": "2D",
+      "sessionDateTime": "2026-07-27T11:30:00.000Z",
+      "sessionDisplayDate": "2026-07-27",
+      "isLateNightSession": false,
+      "occupation": {
+        "availableSeats": 132,
+        "capacity": 141,
+        "status": "HIGH"
+      },
+      "premiere": true
+    },
+    {
+      "movieId": "HO00012548",
+      "movieName": "LA ODISEA",
+      "corporateId": "110137",
+      "tags": [],
+      "language": {
+        "id": "3967bae2-8288-4f36-995f-259683c67f21",
+        "name": "SUBTITULADA",
+        "shortName": "SUB"
+      },
+      "formats": [
+        {
+          "id": "3",
+          "name": "2D",
+          "shortName": "2D"
+        }
+      ],
+      "theaterId": "733",
+      "theaterRoom": "5",
+      "sessionId": "161239",
+      "sessionFormat": "2D",
+      "sessionDateTime": "2026-07-27T12:00:00.000Z",
+      "sessionDisplayDate": "2026-07-27",
+      "isLateNightSession": false,
+      "occupation": {
+        "availableSeats": 183,
+        "capacity": 195,
+        "status": "HIGH"
+      },
+      "premiere": true
+    },
+    {
+      "movieId": "HO00011927",
+      "movieName": "TOY STORY 5",
+      "corporateId": "109144",
+      "tags": [],
+      "language": {
+        "id": "c3beee39-d7e5-4c81-af9c-ca3a3e8bec66",
+        "name": "CASTELLANO",
+        "shortName": "CAST"
+      },
+      "formats": [
+        {
+          "id": "3",
+          "name": "2D",
+          "shortName": "2D"
+        }
+      ],
+      "theaterId": "733",
+      "theaterRoom": "7",
+      "sessionId": "161248",
+      "sessionFormat": "2D",
+      "sessionDateTime": "2026-07-27T12:00:00.000Z",
+      "sessionDisplayDate": "2026-07-27",
+      "isLateNightSession": false,
+      "occupation": {
+        "availableSeats": 143,
+        "capacity": 143,
+        "status": "HIGH"
+      },
+      "premiere": true
+    }
+  ]
+}

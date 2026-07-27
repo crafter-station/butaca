@@ -1,0 +1,113 @@
+{
+  "data": [
+    {
+      "id": 103,
+      "name": "Abasto",
+      "slug": "abasto",
+      "description": "",
+      "address": "Aguero 665, Abasto Shopping",
+      "city": "CABA",
+      "latitude": "-34.603",
+      "longitude": "-58.4108",
+      "location": {
+        "id": "061e15f0-4b75-4bf1-a279-cb8c26ff280d",
+        "name": "Ciudad de Buenos Aires"
+      },
+      "loyaltyCode": "",
+      "hasConcessions": true,
+      "totalCinemaRooms": 12,
+      "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3905.3985312253335!2d-58.41195382103785!3d-34.603260653188734!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcca8c8513598b%3A0x89b570ec39dc7d88!2sHoyts%20Abasto!5e0!3m2!1sen!2sar!4v1733430227190!5m2!1sen!2sar",
+      "formats": [
+        {
+          "id": "0000000006",
+          "name": "DBOX",
+          "shortName": "DBOX"
+        },
+        {
+          "id": "0000000007",
+          "name": "DIGITAL 2D",
+          "shortName": "2D"
+        },
+        {
+          "id": "0000000008",
+          "name": "DIGITAL 3D",
+          "shortName": "3D"
+        }
+      ],
+      "group": {
+        "groupId": "08b68e3c-3574-4b4b-99ec-da744acf723f",
+        "groupName": "grupo 6",
+        "theaters": [
+          {
+            "theaterId": 733,
+            "membershipId": "64d45f0a-0caf-4b0a-b235-3e5e10ba9211"
+          },
+          {
+            "theaterId": 734,
+            "membershipId": "dacd4e58-29ff-4d63-ab95-9276b0613162"
+          },
+          {
+            "theaterId": 730,
+            "membershipId": "8e597348-f3ba-449c-aa78-28436188f685"
+          },
+          {
+            "theaterId": 2016,
+            "membershipId": "8bf07294-7bcb-4198-a205-d6b6d5191a83"
+          }
+        ]
+      }
+    },
+    {
+      "id": 733,
+      "name": "Palermo",
+      "slug": "palermo",
+      "description": "",
+      "address": "Beruti 3399, Palermo CABA",
+      "city": "CABA",
+      "latitude": "-34.5863",
+      "longitude": "-58.4101",
+      "location": {
+        "id": "061e15f0-4b75-4bf1-a279-cb8c26ff280d",
+        "name": "Ciudad de Buenos Aires"
+      },
+      "loyaltyCode": "",
+      "hasConcessions": true,
+      "totalCinemaRooms": 10,
+      "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3284.691346984244!2d-58.41025504691902!3d-34.586675645554095!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcca821220477f%3A0x22f851827c26991e!2sCinemark%20Palermo!5e0!3m2!1sen!2sar!4v1733430774340!5m2!1sen!2sar",
+      "formats": [
+        {
+          "id": "0000000007",
+          "name": "DIGITAL 2D",
+          "shortName": "2D"
+        },
+        {
+          "id": "0000000008",
+          "name": "DIGITAL 3D",
+          "shortName": "3D"
+        }
+      ],
+      "group": {
+        "groupId": "08b68e3c-3574-4b4b-99ec-da744acf723f",
+        "groupName": "grupo 6",
+        "theaters": [
+          {
+            "theaterId": 103,
+            "membershipId": "7777212c-9544-4dbf-aef7-a60161eabbe9"
+          },
+          {
+            "theaterId": 734,
+            "membershipId": "dacd4e58-29ff-4d63-ab95-9276b0613162"
+          },
+          {
+            "theaterId": 730,
+            "membershipId": "8e597348-f3ba-449c-aa78-28436188f685"
+          },
+          {
+            "theaterId": 2016,
+            "membershipId": "8bf07294-7bcb-4198-a205-d6b6d5191a83"
+          }
+        ]
+      }
+    }
+  ]
+}
