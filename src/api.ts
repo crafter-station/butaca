@@ -40,12 +40,23 @@ function looksLikeHtml(bodyText: string): boolean {
   return bodyText.trimStart().startsWith("<");
 }
 
+// El CDN de Cinemark cachea 60s. showtimes ya manda su propio cache-buster
+// porque los asientos cambian rápido; --no-cache lo extiende al resto, que
+// normalmente no lo necesita.
+let bustCache = false;
+export function setNoCache(on: boolean): void {
+  bustCache = on;
+}
+
 async function request<T>(path: string, params?: Record<string, string>): Promise<T> {
   const url = new URL(`${BASE_URL}${path}`);
   if (params) {
     for (const [key, value] of Object.entries(params)) {
       url.searchParams.set(key, value);
     }
+  }
+  if (bustCache && !url.searchParams.has("_t")) {
+    url.searchParams.set("_t", String(Date.now()));
   }
 
   const controller = new AbortController();

@@ -1,7 +1,7 @@
 ---
 cli: butaca
-target: Cinemark Hoyts Argentina, cinema showtimes and seat availability
-terrain: B
+target: Cinemark Hoyts Argentina, cinema showtimes, seat map and seat hold
+terrain: B (public read surface) + C (purchase, behind login)
 built: 2026-07-27
 status: internal
 distribution: npm (native blocked by toolchain, see below)
@@ -12,8 +12,13 @@ distribution: npm (native blocked by toolchain, see below)
 ## What it does
 
 Lists theaters, what is showing, and showtimes with live seat availability for
-the dominant cinema chain in Argentina. Read-only. It cannot buy a ticket, and
-that limit is a recon finding rather than a scope preference.
+the dominant cinema chain in Argentina, plus the seat map and seat hold behind a
+login. It stops before payment, which is the only line drawn on purpose: the
+chain uses bank-side 3-D Secure and automating it crosses into fraud.
+
+**The scope moved twice.** It shipped read-only, then the recon found the
+purchase surface was reachable with an account, and the user corrected a scope
+call I had made without asking him. Round 5 below is the honest record of that.
 
 ## Recon
 
@@ -32,8 +37,17 @@ Three things the recon caught that a build-first approach would have paid for:
    checked: `XX` returns identical Argentine data. Found by reading the error
    body of a failed replay (`"Country undefined not implemented"`), not by
    diffing headers.
-3. **The purchase flow is unmappable, not merely un-automatable.** This is the
-   finding that changed the project. The brief assumed the CLI would go as far
+3. **The purchase flow needed an account, and it took two corrections to see
+   it.** First read: "unmappable". Then the user clicked it by hand and a login
+   panel appeared. Then, with his account and consent, the whole purchase
+   surface opened: seat map (`order-get-map`), hold (`order-set-seats`), nine
+   steps end to end, all in `recon/purchase-flow.md`.
+   **The verdict survived both corrections and stayed "do not build it"**, but
+   the reason changed from "impossible" to "reading the seat map opens an order
+   in their system and the hold takes real inventory". That is a better reason,
+   and it is the one the CLI now states in `--help`, `SKILL.md` and
+   `CONTRACT.md`.
+   The original note read: The brief assumed the CLI would go as far
    as holding seats and hand off a checkout URL, with payment deliberately left
    out. Recon could not observe a single purchase request: four HAR captures,
    headed and headless, with the consent banner and floating ad removed, native
@@ -102,7 +116,8 @@ data, so there is nothing to gate, nothing to undo, and no receipt worth writing
 |---|---|---|
 | banner | **adopted** | Added in round 2 under cli-build 0.4.0, which requires a banner on bare invoke and `--help`. Taken as a block rather than written by hand for one reason: it writes to stderr, so a piped run stays clean. Needed three mechanical fixes to compile under `strict` plus `nodenext`, see below. |
 | detect | **adopted** | Dependency of `banner`, supplies `shouldColor()` for the `NO_COLOR` and non-TTY fallback. |
-| trust ladder | rejected | Read-only over public data. Nothing to gate. |
+| open-url | **adopted** | Round 4, to wire `--open`. Replaced a hand-rolled `spawn` that ignored WSL, SSH, headless Linux, CI and the `BROWSER` convention. Needed the same `.js` extension fix as `banner`. |
+| trust ladder | rejected in round 1, **adopted as an idea in round 5** | With only public reads there was nothing to gate. Once `reservar` existed the domain had consequences, so a three-level ladder went in; the cligentic block itself was rejected (generic T0-T3 for one real gate) and the pattern reimplemented. |
 | killswitch | rejected | No mutation exists to stop. |
 | audit log | rejected | Nothing worth a receipt; no writes, no money, no third-party effects. |
 | dry-run | rejected | Every command is already a safe read. |
@@ -120,9 +135,9 @@ counterweight.
 
 ## What broke
 
-Four defects survived a clean typecheck and a green test suite, and every one
-died on a read of real output. Phase 6's "definition of done is observed
-behavior" caught all four.
+Five defects survived a clean typecheck and a green test suite, and every one
+died on a read of real output. Phase 6 caught four of them; Phase 5's grep for
+unwired call sites caught the fifth.
 
 1. **`--fields` ignored in JSON mode.** Applied only in the human-table branch,
    so the flag worked for humans and was silently dropped for agents: exactly
@@ -137,7 +152,14 @@ behavior" caught all four.
    output: five rows of `11:30` with no way to tell today from next Thursday.
    Fix: `fecha` column added.
 
-4. **`--fields` with an unknown name returned `{}` per row, silently.** Found
+4. **Two flags parsed and never read**, found by running Phase 5's grep for the
+   first time. `--no-cache` was documented in `--help` as a no-op (honest, and
+   still dead surface) and `--open` propagated into the flags object and stopped
+   there. Both were added in rounds whose focus was elsewhere and whose turn got
+   cut short. Now wired and verified: `--open` opens the purchase link,
+   `--no-cache` produces `cf-cache-status: MISS` where the default gets `HIT`.
+
+5. **`--fields` with an unknown name returned `{}` per row, silently.** Found
    after declaring the build done, while running one last sanity check with the
    column names printed by the human table (`--fields hora,pelicula`). Those are
    valid table headers and invalid JSON keys, since the JSON carries `dateTime`
@@ -191,6 +213,184 @@ Worth reporting upstream: the block is described as plain TypeScript you own
 after copying, which reads as compiling unchanged, and it does not under strict
 plus nodenext.
 
+### Round 3: the human-output layer
+
+The biggest gap the three rounds surfaced, and the one with nothing in the skill
+behind it. Written up separately in [human-output.md](human-output.md), because
+none of it is specific to this CLI: seventeen rules covering metric direction,
+threshold calibration, grouping, emitting the next command instead of the
+identifier, splitting a list by actionability, drawing spatial data in a
+terminal, and the technical rakes that only appear once you add style to
+something that was plain.
+
+The short version of what triggered it: the CLI passed every criterion in the
+skill and was still hard to read. 275 rows for someone asking about tonight, a
+percentage that read backwards, and one title repeated fourteen times.
+
+Two of the nine rules came from Hunter correcting me mid-session, and both
+corrections made the rule better than my version:
+
+- I wrote "identifiers are machine-facing, they belong in the JSON". Wrong: the
+  slug is exactly what a person types next. Hiding it forces them into the
+  output mode they are deliberately not using.
+- Then I wrote "show it only when it is not derivable from the visible name".
+  Better, but it still leaves the reader doing a mental transform. The version
+  that works is to emit the whole command, not the argument.
+
+The contract stayed frozen through all of it: same fields, same full set, same
+envelope, verified after each round.
+
+### Round 5: the authenticated surface, and a decision that was not mine to make
+
+The CLI now has `auth login`, `butacas <sessionId>` (draws the seat map) and
+`reservar --asientos F12,F13` (the real hold), plus a trust ladder, an audit log
+and dry-run on both write commands.
+
+**The reason this round exists is a process failure worth recording.** After
+mapping the purchase flow with the user's own session and consent, I decided
+unilaterally that the CLI would stay read-only and wrote that decision into the
+report, the case, `CONTRACT.md`, `SKILL.md` and `--help`. The user's reaction
+was the correct one: he had spent a session logging in and clicking through seat
+selection so I could capture it, and I had turned that into documentation of a
+thing I then refused to build.
+
+The three technical reasons I gave were all true (reading the map opens an order,
+the hold takes real inventory, it needs his session). **They were arguments for
+building it carefully, not for not building it**, and the choice between those
+two was his to make, not mine. I never asked.
+
+The lesson generalizes past this repo: when a recon produces a capability the
+user explicitly worked to unlock, the default is to build it with the right
+gates, and any scope cut is a question, not a conclusion. A skill that says
+"stop at the report" governs the recon, not the user's roadmap.
+
+What the round actually produced, once the decision was his:
+
+- **Trust ladder with three levels**, and the non-obvious classification is that
+  `butacas` is **write-soft, not read**: viewing the seat map requires
+  `POST /order-tickets` first, so a user running it ten times leaves ten open
+  transactions upstream. The command says so.
+- **Credentials in the macOS keychain**, never on disk. `~/.butaca/config.json`
+  (0600) holds email, session cookie and expiry. Verified with a password
+  containing quotes, backticks and `$()`: `spawnSync` array args survive it
+  intact, which is the shell-injection check that matters here.
+- **Audit log two-phase**: PENDING written before the network call, resolved
+  with the same id after. Day-bucketed JSONL, 0600.
+- **Seat map drawn by grid coordinate**, so aisles render as real gaps. The eight
+  upstream states get distinct glyphs, and accessibility seats (`OBESIDAD`,
+  `SILLA DE RUEDAS`) are drawn as their own thing rather than folded into
+  "occupied", which would have been a lie in both directions.
+
+**Two contracts remain inferred, not verified**, and both are flagged in
+`friction.md` and in the recon: the full body of `POST /order-tickets` (the
+capture caught only its prefix) and the NextAuth session-cookie name. Neither is
+testable without a real login. The first real `auth login` is where both get
+confirmed or corrected.
+
+### Rounds 6 to 15: drawing the seat map, and what a screen teaches that a schema cannot
+
+Ten rounds went into a single command, `butacas`, and almost every correction
+came from the user looking at output and saying what was wrong with it. The
+progression is worth recording because none of these defects are visible in a
+test, a typecheck, or a JSON contract.
+
+**The map was mirrored on both axes.** The horizontal flip I predicted from
+reading another CLI built on the same ticketing engine, which documents that its
+seat 1 sits on the right. The vertical one I did not: the row nearest the screen
+was being drawn at the bottom. The user found it in one look ("está invertido, el
+1 está pegado a pantalla"). 163 green tests missed it because all of them covered
+the horizontal axis.
+
+**When one dimension comes reversed, the other is suspect by default.** Both came
+from the same provider coordinate system and had the same odds of being flipped.
+
+**The mirror is draw-only, and mixing the two representations reserves the wrong
+seat.** `order-set-seats` receives the original `gridSeatNumber`, never the
+drawing index. This is now stated in `CONTRACT-AUTH.md` and enforced by reading
+`seat.gridNumber` directly in `toHoldSeatEntries`.
+
+**The glyph took three tries, and the criterion was position inside the cell.**
+`█` fills the cell edge to edge, so contiguous rows touch and the grid reads as
+vertical bars; `▀` clings to the ceiling; `◼` sits centered. Drawing blocks exist
+to tile into continuous areas, geometric symbols exist to be discrete entities,
+and a grid of seats wants the second. Alignment corollary: check
+`east_asian_width` first. `■` is `Ambiguous` and renders one or two columns wide
+depending on the emulator, which shears the whole grid; `◼` is `Narrow`.
+
+**A terminal cell is twice as tall as it is wide**, so one character per seat
+renders as a rectangle. Two characters per seat is what makes it square.
+
+**Rows are numeric here, and the parser only accepted letters.** `parseSeatLabel`
+required letter-then-digits, so `reservar` could not parse a single seat in this
+chain. The fixture had letters because I had copied another chain's convention
+into it, which meant the fixture agreed with the bug. Now it accepts `7-12`,
+`7.12` and `F12`, and rejects `712` as ambiguous with row 71 seat 2.
+
+**A fixture copied from a different instance of the same class of system can
+encode that instance's conventions as if they were universal.**
+
+**An axis header only works if the axis is homogeneous.** I tried putting seat
+numbers as a column header and it was impossible: each row has its own numbering
+(row 2 runs odds on one side of the aisle and evens on the other; row 14 runs
+consecutive). The header would have lied on nearly every row. The fix was putting
+the number inside each cell behind a flag.
+
+**A legend built from the data cannot drift.** Four of eight states were
+hardcoded, so the room showed an amber seat with no entry explaining it while
+listing a state that was not present. Derived from the states actually in that
+room, both failures disappear at once.
+
+**And the amber seat turned out to be the most useful datum on the map.** I had
+classified it as `AUTO_ASIGNADA`, one of eight states, and drew it without
+thinking. The user asked what it was. Requesting the same resource three times
+gave `12-5`, `12-4` and `10-8`: it is not an attribute of the room but the seat
+the provider pre-assigns to that transaction, the one the site shows you marked.
+It went from an odd color to the default suggestion of the next command.
+
+**A state that varies between responses for the same resource is not an attribute
+of that resource**, and checking costs one repeated request.
+
+**A preview that shows the input is not a preview.** `reservar` asked "you are
+about to reserve 2-4, confirm?" by echoing what the user had just typed, *before*
+resolving those labels against the map. You were confirming your own typo. Moved
+after resolution, it now shows what the system understood: row, seat and status
+for each. And the cancel path offers the `--yes` variant rather than pre-building
+it into the suggestion, because a command that skips confirmation is exactly the
+one you should not be able to paste without having read the preview.
+
+**An emitted example is an executable promise.** Three versions of the same
+error: `--asientos <F12,F13>` (invented seats *and* the wrong format for this
+chain), then the first two free seats (real but arbitrary), then the
+pre-assigned seat (real, and the one the site would show marked). If your output
+prints a command fragment, it has to work pasted verbatim.
+
+**The provider announces operational state in prose.** Cinemark suspended online
+sales mid-testing: no flag in `CNK_FEATURE_FLAGS`, the generic `error_order_new`
+code, and the notice only in the message text. Verified by curl that public reads
+and `get-prices` still return 200 and only `order-tickets` fails, so the cut is
+theirs. Detecting the text changes the hint from "may be a temporary API problem"
+(which sends the user to debug their own install) to "the provider cut online
+sales, browsing still works, try later".
+
+**One near-miss worth keeping.** I grepped the site's homepage for
+"mantenimiento" to confirm the outage and found it, and was one step from writing
+that the site announced the suspension. It was the Cinemark Club FAQ ("no
+maintenance cost"). Reading the context around a match costs one command and
+dissolved the conclusion.
+
+**A test that passes `color: true` to a module that calls `shouldColor()`
+internally verifies the no-color branch while believing it verifies color.**
+Found while adding the numbered-seat mode. `FORCE_COLOR=1` is what actually
+forces it.
+
+**And one on secret handling that is on me.** The login prompt echoed the
+password in plaintext, and the user pasted a real credential into chat while
+reporting a bug about it. The prompt now masks input (`src/prompt.ts`, Node APIs
+only, restores raw mode on Ctrl-C), but the credential had already left the
+machine and had to be rotated. **A prompt that reads a secret must mask it from
+the first version**, because the failure mode is not the prompt, it is what the
+user does around it.
+
 ## What I would do differently
 
 **Build fixtures that cross the boundaries the code sorts and filters on.** One
@@ -212,9 +412,9 @@ slower.
 ## Evidence
 
 - Repo: `/Users/raillyhugo/Programming/crafter-station/butaca`
-- Source: `src/{api,args,cli,datetime,escape,format,types}.ts`,
-  `src/commands/{cines,cartelera,funciones,schema}.ts`
-- Tests: 59 passing, 145 assertions, 7 files, fixture-based, no network
+- Source: `src/{api,api-auth,args,auth,cli,datetime,escape,format,prompt,seat-map,style,types}.ts`,
+  `src/commands/{auth,butacas,cartelera,cines,estrenos,funciones,reservar,schema}.ts`
+- Tests: 173 passing, 351 assertions, 20 files, fixture-based, no network
 - Typecheck: clean, strict, no `any`
 - Live verification: `butaca cines` (24 theaters), `butaca funciones --cine
   palermo` (275 sessions, 2026-07-27 through 2026-08-29, chronological),

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { ApiError } from "../src/api.js";
-import { applyFields, exitCodeFor, fail, ok, renderTable, resolveMachineMode } from "../src/format.js";
+import {
+  applyFields,
+  exitCodeFor,
+  fail,
+  ok,
+  renderTable,
+  reportError,
+  resolveMachineMode,
+} from "../src/format.js";
 
 describe("envelope de exito", () => {
   it("trae ok true, data, y meta con source/fetchedAt/cached", () => {
@@ -61,7 +69,17 @@ describe("exitCodeFor", () => {
 describe("resolveMachineMode", () => {
   it("es true si flags.json es true, sin importar TTY", () => {
     expect(
-      resolveMachineMode({ json: true, noCache: false, help: false, version: false, fields: null }),
+      resolveMachineMode({
+        json: true,
+        noCache: false,
+        todas: false,
+        todos: false,
+        open: false,
+        numeros: false,
+        help: false,
+        version: false,
+        fields: null,
+      }),
     ).toBe(true);
   });
 });
@@ -117,5 +135,44 @@ describe("renderTable", () => {
     expect(lines[0]).toContain("slug");
     expect(lines[0]).toContain("name");
     expect(lines.length).toBe(4);
+  });
+});
+
+describe("reportError: a qué stream va", () => {
+  // Regresión: en machineMode el envelope de error iba a stderr, así que
+  // `butaca ... --json | jq` recibía stdout vacío y el agente perdía code y
+  // hint. El envelope de error es salida estructurada, no diagnóstico.
+  it("en modo máquina el envelope va a stdout", () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const so = process.stdout.write;
+    const se = process.stderr.write;
+    process.stdout.write = (c: string) => (out.push(c), true);
+    process.stderr.write = (c: string) => (err.push(c), true);
+    try {
+      reportError(true, new ApiError("NOT_FOUND", "no existe", "probá otro"));
+    } finally {
+      process.stdout.write = so;
+      process.stderr.write = se;
+    }
+    expect(out.join("")).toContain('"NOT_FOUND"');
+    expect(err.join("")).toBe("");
+  });
+
+  it("en modo humano el error va a stderr, para no ensuciar un pipe", () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const so = process.stdout.write;
+    const se = process.stderr.write;
+    process.stdout.write = (c: string) => (out.push(c), true);
+    process.stderr.write = (c: string) => (err.push(c), true);
+    try {
+      reportError(false, new ApiError("NOT_FOUND", "no existe", "probá otro"));
+    } finally {
+      process.stdout.write = so;
+      process.stderr.write = se;
+    }
+    expect(err.join("")).toContain("no existe");
+    expect(out.join("")).toBe("");
   });
 });

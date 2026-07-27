@@ -4,7 +4,12 @@ export type ErrorCode =
   | "BAD_INPUT"
   | "NETWORK_ERROR"
   | "RATE_LIMITED"
-  | "QUEUED";
+  | "QUEUED"
+  | "AUTH_REQUIRED"
+  | "AUTH_EXPIRED"
+  | "AUTH_FAILED"
+  | "SEATS_UNAVAILABLE"
+  | "ORDER_FAILED";
 
 export interface EnvelopeMeta {
   source: string;
@@ -108,6 +113,30 @@ export interface RawCarteleraMovie {
   rating: string;
   formats: RawFormatRef[];
   premiere: boolean;
+  status?: string;
+  openingDate?: string;
+}
+
+export type EstadoEstreno = "PRESALE" | "COMING_SOON" | "SHOWING_NOW";
+
+export interface Estreno {
+  slug: string;
+  title: string;
+  runTime: number;
+  rating: string;
+  formats: string[];
+  status: EstadoEstreno;
+  openingDate: string;
+  diasParaEstreno: number;
+}
+
+export interface EstrenoConVentas extends Estreno {
+  ventas: {
+    funciones: number;
+    vendidoPromedio: number;
+    maxVendido: number;
+    diaSiguiente: number | null;
+  } | null;
 }
 
 export interface RawShowtime {

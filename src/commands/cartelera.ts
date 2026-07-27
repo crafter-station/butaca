@@ -2,6 +2,7 @@ import { ApiError, fetchMovies, fetchTheaters } from "../api.js";
 import { escapeText } from "../escape.js";
 import { applyFields, ok, printEnvelope, renderTable, reportError } from "../format.js";
 import type { Flags } from "../format.js";
+import { blue, bold, dim, formatearDuracion, italic } from "../style.js";
 import type { CarteleraMovie, RawCarteleraMovie } from "../types.js";
 
 export interface CarteleraOptions {
@@ -59,8 +60,30 @@ export async function runCartelera(
       return 0;
     }
 
-    const columns = flags.fields ?? ["slug", "title", "rating", "runTime", "formats"];
-    process.stdout.write(`${renderTable(rows, columns)}\n`);
+    if (flags.fields) {
+      process.stdout.write(`${renderTable(rows, flags.fields)}\n`);
+      return 0;
+    }
+
+    // title y slug decían casi lo mismo en dos columnas. El título manda, el
+    // slug queda en dim porque es lo que se pasa a --peli.
+    // El slug se queda porque acá NO es derivable del título: las tildes y los
+    // dos puntos se pierden (OBSESIÓN da obsesion, SPIDER-MAN: UN NUEVO DÍA da
+    // spider-man-un-nuevo-dia). Es lo que se tipea en --peli, así que
+    // esconderlo obliga a adivinarlo. En `cines` sí es derivable y por eso allá
+    // no está.
+    const humanRows = movies.map((m) => ({
+      pelicula: bold(m.title),
+      dura: dim(formatearDuracion(m.runTime)),
+      apta: dim(m.rating),
+      formatos: m.formats.map((f) => (f === "2D" ? dim(f) : blue(f))).join(dim(" · ")),
+      "--peli": dim(m.slug),
+    }));
+    const cine = options.cine ?? "<cine>";
+    process.stdout.write(
+      `${renderTable(humanRows, ["pelicula", "dura", "apta", "formatos", "--peli"])}\n` +
+        `\n${dim(`Horarios de una: ${italic(`butaca funciones --cine ${cine} --peli <slug>`)}`)}\n`,
+    );
     return 0;
   } catch (err) {
     const apiError =

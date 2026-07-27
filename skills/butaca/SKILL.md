@@ -1,13 +1,16 @@
 ---
 name: butaca
-description: Consultar cartelera, complejos y disponibilidad de butacas de Cinemark Argentina desde la terminal. Usar cuando el usuario pregunte qué películas dan, en qué cine, a qué hora, en qué formato (2D, 3D, XD, D-BOX, 4D, PREMIER), o cuántas butacas quedan libres para una función. También cuando pida "qué veo hoy", "funciones en Palermo", "entradas para X película", o quiera elegir función por disponibilidad real de asientos. Read-only, sin credenciales. NO compra entradas ni reserva butacas.
+description: Consultar cartelera, complejos y disponibilidad de butacas de Cinemark Argentina desde la terminal. Usar cuando el usuario pregunte qué películas dan, en qué cine, a qué hora, en qué formato (2D, 3D, XD, D-BOX, 4D, PREMIER), o cuántas butacas quedan libres para una función. También cuando pida "qué veo hoy", "funciones en Palermo", "entradas para X película", o quiera elegir función por disponibilidad real de asientos. La mitad de lectura no necesita cuenta; ver el mapa de butacas y reservarlas sí. NO automatiza el pago.
 ---
 
 # butaca
 
-CLI agent-first sobre la API pública que usa el sitio de Cinemark Argentina.
-Proyecto comunitario, no oficial. Read-only: solo lee datos que ya son públicos,
-sin cuenta y sin credenciales.
+CLI agent-first sobre la API que usa el sitio de Cinemark Argentina. Proyecto
+comunitario, no oficial.
+
+**Dos superficies.** Cartelera, horarios y butacas libres son públicos y no
+necesitan cuenta. El mapa de asientos y la reserva sí, y además escriben en el
+sistema de Cinemark: leé "Superficie autenticada" antes de usarlos.
 
 ## Setup
 
@@ -15,7 +18,8 @@ sin cuenta y sin credenciales.
 npm install -g butaca
 ```
 
-Requiere Node 20 o superior. Sin API key, sin login, sin archivo de config.
+Requiere Node 20 o superior. Los comandos públicos no necesitan nada más; los
+autenticados guardan la contraseña en el keychain del sistema.
 
 Introspección en runtime: `butaca schema --json` devuelve el shape de cada
 comando con un campo `version`. Preferilo sobre parsear `--help`.
@@ -56,11 +60,23 @@ butaca funciones --cine <slug>                  # horarios + butacas libres
                  [--formato 2D|3D|XD|DBOX|4D|PREMIER]
                  [--idioma SUB|CASTELLANO]
                  [--libres <n>]
+butaca estrenos [--cine <slug>] [--todos]       # preventa y próximos estrenos
+butaca estrenos <busqueda> [--cine <slug>]      # un estreno, con sus ventas
+butaca estrenos --peli <busqueda>               # idem, con el flag del resto
 butaca <cine-slug>                              # atajo de funciones --cine
 butaca schema [comando]                         # shapes con version
 ```
 
-Globales: `--json`, `--fields <a,b>`, `--no-cache`, `--help`, `--version`.
+Con cuenta (ver "Superficie autenticada" más abajo antes de usarlos):
+
+```bash
+butaca auth login | status | logout
+butaca butacas <sessionId> --cine <slug> [--dry-run]
+butaca reservar <sessionId> --cine <slug> --asientos F12,F13 [--dry-run] [--yes]
+```
+
+Globales: `--json`, `--fields <a,b>`, `--no-cache`, `--open`, `--help`,
+`--version`.
 
 ## Shapes
 
@@ -133,16 +149,52 @@ gastar tokens:
 butaca funciones --cine palermo --fields dateTime,seats --json
 ```
 
+### Buscar un estreno: dos formas equivalentes
+
+`estrenos` acepta la búsqueda como posicional o con `--peli`, y las dos hacen
+match parcial contra slug y título:
+
+```bash
+butaca estrenos spider --cine palermo                        # posicional, corto
+butaca estrenos --peli spider-man-un-nuevo-dia --cine palermo # flag, igual que el resto
+```
+
+El flag existe porque la tarjeta de cada estreno imprime `--peli <slug>`, y lo
+que el CLI muestra tiene que funcionar pegado tal cual. Si venís de `funciones`
+o `cartelera`, usá `--peli` y no cambies de convención.
+
+## Superficie autenticada
+
+`butacas` y `reservar` necesitan sesión (`butaca auth login`). Antes de usarlos,
+tres cosas que un agente tiene que saber:
+
+**`butacas` no es una lectura, aunque lo parezca.** La API exige abrir una orden
+(`POST /order-tickets`) antes de devolver el mapa, así que cada consulta deja una
+transacción abierta en el sistema de Cinemark. No lo llames en un loop ni
+"para chequear". Si solo querés saber cuán llena está una función, usá
+`funciones`, que da `seats.available` sin escribir nada.
+
+**`reservar` toma inventario real.** Bloquea butacas que otra persona no va a
+poder comprar. Nunca lo llames sin que el usuario haya pedido esas butacas
+concretas. Tiene `--dry-run` que valida contra el mapa sin reservar: usalo para
+confirmar que los asientos existen y están libres.
+
+**Sin sesión los tres fallan con `AUTH_REQUIRED`** y un hint que nombra
+`butaca auth login`. Nunca se cuelgan pidiendo contraseña, ni siquiera en un
+pipe.
+
+En el shape de `butacas`, cada asiento trae **dos representaciones**: `row` y
+`number` son la etiqueta que lee un humano (`F12`), `gridRow` y `gridNumber` son
+la coordenada que exige la API de reserva. Están las dos a propósito, porque la
+traducción no es trivial y la API no acepta etiquetas.
+
 ## Qué NO hace
 
-**No compra entradas, no reserva butacas y no automatiza pagos.**
+**No automatiza el pago.** `reservar` termina devolviendo la URL de checkout con
+la orden armada, y ahí corta. Cinemark mete 3-D Secure del banco y automatizar
+eso cruza a territorio de fraude.
 
-No es una decisión de alcance: el recon del sitio no pudo observar ningún
-endpoint de asientos ni de reserva. El detalle con evidencia está en
-`recon/report.md` del repo. Si el usuario quiere comprar, `butaca` le dice qué
-función le conviene y el resto lo hace en el sitio.
-
-No inventes un comando de compra ni sugieras que existe.
+No inventes un comando de pago ni sugieras que existe.
 
 ## Frescura de los datos
 

@@ -5,6 +5,646 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 15 (2026-07-27, la butaca ámbar era la respuesta)
+
+- [surface-recon] **Hunter preguntó qué era el color ámbar y resultó ser el dato
+  más útil del mapa.** Yo lo había mapeado como `AUTO_ASIGNADA`, un estado más
+  de los ocho, y lo dibujaba sin pensarlo. Su pregunta ("¿no es la que estás
+  seleccionando?") me hizo verificarlo: **cambia en cada orden.** Tres órdenes
+  seguidas sobre la misma función dieron `12-5`, `12-4` y `10-8`.
+  No es un atributo de la sala sino **la butaca que Cinemark preasigna a esa
+  transacción**, o sea la que el sitio te deja marcada al entrar. Pasó de ser un
+  color raro a ser la sugerencia por defecto del comando de reserva.
+  **Regla:** un estado que varía entre respuestas del mismo recurso no es un
+  atributo del recurso. Si el recon lo clasifica junto a los demás sin verificar
+  su estabilidad, el cliente lo trata como fijo y pierde su significado. Chequear
+  es pedir el mismo recurso dos veces.
+- [cli-build] **La sugerencia era correcta pero no la mejor.** Tomaba las dos
+  primeras butacas libres del mapa, que es honesto (existen, están libres) y
+  arbitrario. Ahora sugiere la auto-asignada, que es la que el usuario vería
+  marcada en el sitio, con fallback a la primera libre si no hay ninguna.
+- [upstream] **Cinemark cortó la venta online, y no fuimos nosotros.** Primero
+  sospeché que era reacción a las órdenes seguidas que abrí probando. Verificado
+  con curl directo: el mismo POST falla igual, y `get-prices` y la lectura
+  pública siguen en 200. **El corte es del backend y afecta solo
+  `order-tickets`.** Lunes 16:54, o sea ni siquiera es horario nocturno.
+  No hay flag en su config ni código de error propio: `CNK_FEATURE_FLAGS` no
+  trae nada de mantenimiento, y el código es el genérico `error_order_new`. **El
+  texto del mensaje es el único indicador**, así que el CLI ahora lo detecta y
+  cambia el hint: dice que no es problema del CLI, que consultar sigue andando y
+  que pruebe más tarde, en vez del genérico "puede ser un problema temporal".
+  **Regla:** cuando un upstream comunica un estado operativo solo por texto libre
+  y no por código, vale reconocerlo explícitamente. Un hint genérico manda al
+  usuario a debuggear su propia instalación por algo que está del otro lado.
+- [cli-build] **Falsa alarma que casi documento como hallazgo.** Busqué la
+  palabra "mantenimiento" en el home del sitio para confirmar el corte y la
+  encontré: era del FAQ de Cinemark Club ("no tiene costo de mantenimiento
+  mensual"). Estuve a un paso de concluir que el sitio anunciaba la suspensión.
+  Un grep de una palabra sobre una página entera no es evidencia; mirar el
+  contexto alrededor del match costó un comando y desarmó la conclusión.
+
+### Ronda 14 (2026-07-27, la leyenda incompleta y el preview que no previsualizaba)
+
+- [cli-build] **Una leyenda fija miente en las dos direcciones.** Tenía cuatro
+  entradas hardcodeadas de los ocho estados posibles, así que la sala mostraba
+  una butaca ámbar (`AUTO_ASIGNADA`, había exactamente una) sin entrada que la
+  explicara, y a la vez listaba "fuera de servicio" cuando no había ninguna.
+  Ahora se arma desde los estados **presentes en esa sala**. **Regla:** una
+  leyenda derivada de los datos no puede quedar desactualizada; una escrita a
+  mano se desincroniza en cuanto el upstream usa un estado que no previste.
+- [cli-build] **El "preview" de `reservar` confirmaba el input, no el
+  resultado.** Preguntaba "vas a reservar 2-4, ¿confirmás?" repitiendo lo que el
+  usuario acababa de tipear, **antes** de resolver esas etiquetas contra el mapa.
+  O sea confirmabas tu propio typo: si escribías una butaca inexistente o
+  vendida, decías que sí y recién ahí fallaba.
+  Movido a después de `resolveSeats`, con los datos reales: fila, asiento y
+  estado de cada butaca. **Regla: un preview que muestra el input no es un
+  preview.** Tiene que mostrar lo que el sistema entendió, que es lo único que
+  el usuario no puede verificar solo.
+- [cli-build] **Decidí NO poner `--yes` en el comando sugerido.** Habría sido
+  cómodo (pegás y listo) y es exactamente lo que no hay que hacer: `--yes` saltea
+  la confirmación de una operación que bloquea inventario real, y ofrecerlo
+  pre-armado hace que el usuario lo copie sin haber decidido saltearla. Se
+  ofrece **después** de cancelar, que es el momento en el que ya viste el preview
+  y sabés qué estás salteando.
+
+### Ronda 13 (2026-07-27, cuadrado y número a la vez)
+
+- [cli-build] **Probé el color de fondo y Hunter prefirió el número coloreado a
+  secas.** El razonamiento técnico era correcto: dos dimensiones (identidad y
+  estado) compitiendo por dos caracteres, y el fondo no ocupa ancho, así que
+  `\x1b[48;5;203m 7\x1b[0m` daba las dos. Replica visualmente lo que hace el
+  sitio.
+  Pero en una terminal el fondo pesa distinto que en una web: llena la celda
+  entera y el mapa se vuelve un bloque de color, mientras que el número coloreado
+  deja respirar. **El argumento de "así lo hace la app original" no se traslada
+  entre medios**, y probarlo costó menos que discutirlo: se implementó, se miró,
+  se revirtió.
+  Lo que queda como aprendizaje reusable no es qué opción ganó sino que **una
+  variante visual se decide mirándola, no razonándola**, y que revertir limpio es
+  parte del costo de proponerla (se removieron `fill` de los ocho estados y los
+  cinco helpers de fondo, porque código no cableado es deuda).
+- [cli-build] **Un test que pasa `color: true` no fuerza el color si el módulo
+  consulta el entorno.** `renderSeatMap` acepta la opción pero `style.ts` llama a
+  `shouldColor()` internamente, que sin TTY devuelve false, así que el test
+  quedaba verificando la rama sin color creyendo verificar la de color.
+  Se arregla con `FORCE_COLOR=1` alrededor del assert. Es la contracara del
+  hallazgo de la ronda 3 (los tests nunca ejercen el camino con color): ahí el
+  problema era no probarlo, acá es **creer que lo estás probando**.
+
+### Ronda 12 (2026-07-27, el mapa no era operable)
+
+- [cli-build] **Un mapa que muestra dónde hay lugar pero no cómo se llama ese
+  lugar no es operable.** El dibujo tenía todo (posición, estado, color) menos
+  lo único que hace falta para el comando siguiente: el número de la butaca.
+  El usuario preguntó tres veces cómo seleccionar un asiento, que es la señal de
+  que la salida se veía bien y no servía.
+- [cli-build] **Intenté un encabezado de columnas y era imposible: cada fila
+  tiene su propia numeración.** La fila 2 va impares a un lado del pasillo y
+  pares al otro (13, 11, 9, 7, 5, 3, 1 | 2, 4); la fila 14 va correlativa
+  14..1. Una cabecera global habría mentido en casi todas las filas, y el primer
+  intento efectivamente imprimió `10 8 6 4 2 9 8 1 3 5 7...`, que no es la
+  numeración de ninguna fila.
+  La solución es poner el número **dentro** de la butaca (`--numeros`), que es
+  lo único correcto cuando la numeración es por fila y no por columna.
+  **Regla:** antes de agregar una cabecera de ejes a una grilla, verificá que el
+  eje sea homogéneo. Si cada fila numera distinto, la cabecera es una mentira
+  bien formateada.
+- [cli-build] **El modo numerado reemplaza el glifo pero conserva el color**, o
+  sea no se pierde el estado: `7-2` en rojo es la butaca 2 de la fila 7, vendida.
+  Cuando una vista tiene dos dimensiones (identidad y estado) y solo entra una en
+  el espacio, la que se cede es la que el usuario puede recuperar de otra forma.
+  Acá el estado vive en el color, que no ocupa ancho.
+
+### Ronda 11 (2026-07-27, el glifo correcto para una grilla)
+
+- [cli-build] **Tres glifos probados hasta dar con el que centra.** `█` llena la
+  celda de arriba a abajo y las filas contiguas se tocan. `▀` (medio bloque
+  superior) deja aire abajo pero se pega al techo, así que la butaca queda alta
+  dentro de su celda. **`◼` (BLACK MEDIUM SQUARE) queda centrado vertical y
+  horizontalmente**, que es como lo dibujan las apps de cine.
+  El criterio que faltaba y que vale para cualquier grilla en terminal: **elegí
+  el glifo por dónde queda dentro de la celda, no solo por su forma.** Los
+  bloques de dibujo (`█ ▀ ▄`) están diseñados para tocarse y formar áreas
+  continuas; los símbolos geométricos (`◼ ● ▲`) están diseñados para ser
+  entidades separadas. Una grilla de objetos discretos quiere lo segundo.
+- [cli-build] **Ojo con el ancho: `■` es East Asian Width Ambiguous.** Puede
+  renderizar a uno o dos anchos según el emulador y la config del usuario, lo
+  que rompería la alineación en cualquier terminal que lo trate como ancho. `◼`
+  es `N` (narrow) y ocupa un ancho predecible. Verificado con
+  `unicodedata.east_asian_width` antes de elegirlo, no después de que se rompa.
+  **Para cualquier carácter no ASCII que vaya en una grilla alineada, chequeá su
+  east-asian-width primero.**
+
+### Ronda 10 (2026-07-27, el mapa se veía y no se podía usar)
+
+- [cli-build] **El bug que hacía inusable `reservar` en esta cadena: las filas
+  son NÚMEROS, no letras.** `parseSeatLabel` exigía `letra+número` (`F12`), pero
+  `rowPhysicalId` en Cinemark es "1".."14". O sea la butaca "fila 7 asiento 12"
+  **no tenía forma de escribirse**, y `reservar` habría fallado con cualquier
+  entrada. Nunca se detectó porque el fixture usaba filas con letra, copiando la
+  convención de otras cadenas en vez de la del target.
+  Peor: pegar fila y número da "712", ambiguo entre fila 7 asiento 12 y fila 71
+  asiento 2. Ahora la forma canónica es `7-12` con guion, y se sigue aceptando
+  `F12` para salas que sí usen letras.
+  **Regla:** un fixture que no copia la convención real del target puede validar
+  un parser que el target rompe. Los identificadores de dominio (filas, códigos,
+  slugs) hay que sacarlos de una respuesta real, no de lo que parece razonable.
+- [cli-build] **El `nextSteps` sugería butacas inventadas.** Decía
+  `--asientos <F12,F13>`, un ejemplo que además de usar el formato equivocado
+  nombraba butacas que no existen en esa sala. Un ejemplo que falla al pegarlo es
+  peor que no dar ejemplo. Ahora toma las dos primeras butacas **libres del mapa
+  que acaba de dibujar**.
+- [cli-build] **La nomenclatura no estaba en ningún lado de la salida humana.**
+  El mapa mostraba 143 butacas y el usuario no tenía cómo saber si se dice `A1`,
+  `1-2` o `12`: el dato estaba solo en el JSON. Agregada una línea al pie. **Si
+  una salida humana muestra entidades seleccionables, tiene que decir cómo se
+  nombran**, o el usuario tiene que ir al modo máquina para operarla.
+- [terminal] Falsa alarma que vale anotar: reportaste un fondo naranja en la
+  fila 1 y en la leyenda. Verificado con `grep` de escapes: el CLI emite **cero**
+  códigos de fondo (todos son `38;5;` de color de texto). Era la selección de la
+  terminal al copiar. Vale como recordatorio de verificar antes de "arreglar" un
+  bug de render que puede ser del emulador.
+
+### Ronda 9 (2026-07-27, el mapa sin contexto y el glifo equivocado)
+
+- [cli-build] **El mapa no decía de qué función era.** Dibujaba 143 butacas sin
+  nombre de película, hora, sala, formato ni idioma: el usuario tenía que
+  acordarse de qué `sessionId` había pasado. Y lo peor es que el comando **ya
+  tenía los datos** y los tiraba: `resolveMovieSlug` cruzaba el sessionId contra
+  los showtimes para armar el link, extraía el slug y descartaba el resto del
+  objeto.
+  **Regla:** cuando una función resuelve una entidad para sacarle un campo, mirá
+  qué más trae antes de descartarla. El costo de devolver el objeto entero es
+  cero y evita una segunda llamada idéntica más tarde.
+- [cli-build] **`█` era el glifo equivocado y el espacio horizontal no
+  alcanzaba.** El bloque entero llena la celda de arriba a abajo, así que las
+  filas contiguas se tocan y la sala se lee como barras verticales continuas, no
+  como butacas. Había un espacio entre columnas y no servía, porque el problema
+  era vertical.
+  `▀` (medio bloque superior) deja aire abajo y cada butaca se separa de la de la
+  fila siguiente. **La separación entre celdas de una grilla en terminal se
+  resuelve eligiendo un glifo que no llene la celda, no agregando espacios**: los
+  espacios solo separan en horizontal, y la celda de terminal es más alta que
+  ancha, así que el problema visible es siempre el vertical.
+
+### Ronda 8 (2026-07-27, el dibujo comparado contra el sitio)
+
+- [cli-build] **El eje vertical también iba invertido, y 163 tests no lo
+  vieron.** Los tests cubrían el espejo horizontal (que ya habíamos arreglado) y
+  ninguno miraba el orden de las filas. `seatGridRowId` va al revés que
+  `rowPhysicalId`: grid 14 es la fila 1, la pegada a la pantalla. Dibujar en el
+  orden del array ponía el fondo de la sala arriba.
+  **El fixture reproducía el error**: tenía grid y label creciendo juntos, o sea
+  al revés de la sala real, así que el test que agregué falló contra el fixture y
+  no contra el código. Corregir el fixture rompió otros cuatro tests que
+  hardcodeaban el `gridRow` viejo, lo cual es sano: eran los que dependían del
+  dato malo.
+  **Regla:** cuando descubrís que un eje va espejado, revisá el otro. Los dos
+  salieron del mismo sistema de coordenadas y tienen la misma probabilidad de
+  estar invertidos.
+- [cli-build] **Las butacas salían rectangulares porque una celda de terminal es
+  el doble de alta que de ancha.** Un bloque por butaca da un rectángulo
+  vertical; el sitio las dibuja cuadradas. Dos caracteres por butaca lo
+  corrige. Es obvio una vez que lo ves y no se me había ocurrido: **la unidad de
+  la terminal no es un cuadrado**, y cualquier dibujo que represente una grilla
+  física tiene que compensarlo.
+- [surface-recon] **Once URLs probadas para el deep link al seat picker, todas
+  404.** Sumadas a las seis de la ronda anterior: `/seleccionar-butaca`,
+  `/seleccion-butacas`, `/compra/butacas`, `/entradas/butacas`,
+  `/compra-entradas/butacas`. Con sesión activa y orden abierta. Queda
+  confirmado que el estado de la orden vive solo en memoria del cliente.
+
+### Ronda 7 (2026-07-27, el mismo error dos veces seguidas)
+
+- [cli-build] **Diagnostiqué el bug equivocado y el fix "funcionó" igual.** El
+  CLI decía "The request is invalid" y yo asumí que era `order-tickets`, porque
+  era el contrato que tenía marcado como incompleto. Arreglé `order-tickets`,
+  los tests pasaron, y el comando **seguía fallando idéntico**. Recién al correr
+  el flujo real paso a paso vi que reventaba antes, en `fetchPrices`.
+  Lo que lo hizo invisible: los dos endpoints exigen `salesChannelToken` y los
+  dos devuelven el mismo mensaje genérico. Arreglar uno de los dos deja el
+  síntoma sin cambios, así que el fix parecía no haber servido cuando en
+  realidad había servido a medias.
+  **Regla:** cuando un error genérico no cambia después de un fix, el fix no
+  estaba mal necesariamente: puede haber dos causas con el mismo síntoma. Correr
+  el flujo paso a paso cuesta un script de cinco líneas y dice exactamente en
+  qué llamada revienta, en vez de deducirlo del mensaje.
+- [surface-recon] **`salesChannelToken` es obligatorio en más endpoints de los
+  que el recon documentó.** Estaba anotado para `order-tickets` y resultó que
+  `get-prices` también lo exige. Medido de a un parámetro: `cinemaId+sessionId`
+  da 500, agregar `feature` sigue 500, agregar el token da 200.
+  El recon lo tenía en el env blob del sitio (`SALES_CHANNEL_TOKEN_TICKET_CANDY`)
+  pero no había verificado en qué llamadas hace falta. **Un valor que aparece en
+  la config pública del sitio probablemente sea requerido en todo el flujo, no
+  en la llamada donde lo viste primero.**
+- [contrato] **El BFF mezcla convenciones de envelope y hay que tolerar las
+  dos.** `get-prices` y `order-tickets` responden `data` minúscula;
+  `order-get-map` responde `Data`. El código leía `body.Data` para todos y
+  reventaba con "undefined is not an object" en el segundo. Ahora acepta ambas.
+  Es el tipo de inconsistencia que un HAR no destaca porque cada respuesta se
+  mira por separado; aparece recién cuando escribís un cliente que las trata
+  igual.
+
+### Ronda 6 (2026-07-27, primer uso real: order-tickets y el espejo confirmados)
+
+- [surface-recon] **El bug del espejo lo predijo leer el CLI de otra cadena
+  sobre el mismo motor, y se confirmó con datos reales recién en el primer
+  uso.** La Ronda 5 había dejado anotado en `friction.md` y en
+  `CONTRACT-AUTH.md` (sección "Pendiente: ¿el eje va espejado?") que otro CLI
+  documentaba el eje horizontal invertido, pero que contra el fixture
+  inventado de Cinemark no aplicaba. El primer mapa capturado en vivo (sala 7
+  de Palermo) lo confirmó: `gridSeatNumber` crece hacia la izquierda de la
+  etiqueta impresa (grid 1 = butaca 13, grid 6 = butaca 3), exactamente el
+  patrón que el CLI ajeno documentaba. Fix de una línea en `buildGrid`
+  (`columnas - gridSeatNumber` en vez de `gridSeatNumber - 1`), pero la parte
+  que importa es la secuencia: leer código de un dominio vecino generó la
+  pregunta correcta semanas antes de tener los datos para responderla, y la
+  pregunta ya escrita convirtió un bug de UI silencioso (nadie explota, solo
+  reserva mal) en un fix de un día uno.
+- [contrato] **`order-tickets` fallaba con "The request is invalid" y la causa
+  era doble: un contrato marcado explícitamente como incompleto, más un typo de
+  convención entre dos respuestas del mismo dominio.** `recon/purchase-flow.md`
+  ya decía "este es el único contrato del flujo que NO está completo" para el
+  body de `order-tickets`. Verificado contra la API real: faltaban `cinemaId`,
+  `salesChannelToken` y `memberId` a nivel superior del body (sin ellos,
+  `500 error_order_new "Uno o más campos son requeridos."`). Encima,
+  `get-prices` devuelve `hoCode` (h minúscula) pero `order-tickets` pide
+  `hOCode`, y el shape real de `get-prices` no es una lista plana de tarifas
+  sino categorías anidadas (`categoryId -> tickets -> buyOptions`), no lo que
+  `buildTicketList` asumía. `order-tickets` también exige el objeto
+  `buyOptions[0]` entero, no el `{ recogId, promoId }` recortado que se estaba
+  mandando. Los cuatro contratos (`recon/purchase-flow.md`, `CONTRACT-AUTH.md`,
+  los tipos de `api-auth.ts`, `buildTicketList`) están actualizados con el
+  shape verificado.
+- [proceso] **La entrada "queda sin verificar contra Cinemark" de la Ronda 5
+  cumplió exactamente la función que se le pedía: decir dónde mirar primero.**
+  De las dos incógnitas marcadas ahí (el body de `order-tickets` y el eje del
+  mapa), las dos rompieron o quedaban por confirmar, y las dos se resolvieron
+  en la misma sesión con evidencia real en vez de memoria o suposición.
+
+### Ronda 5 (2026-07-27, superficie autenticada, CONTRACT-AUTH.md)
+
+- [cli-build] **El color es la codificación, la forma es el fallback.** Dibujé
+  el mapa con glifos ASCII distintos por estado (`·`, `x`, `W`, `/`) y Hunter
+  mostró el mapa real del sitio: son **bloques sólidos de color**, todos la misma
+  forma, y la sala se lee de un vistazo. Cambiado a `█` con ocho colores, y el
+  glifo queda solo para `NO_COLOR`.
+  El bug que salió de ahí: `renderSeatMap` defaulteaba a `color: true` en vez de
+  consultar el entorno, así que sin color imprimía **ocho bloques idénticos**,
+  un mapa que no distingue nada. Regla: cuando el color pasa de decorativo a
+  portador de significado, el fallback sin color tiene que cambiar de
+  representación, no solo apagarse. Un `shouldColor()` en el default lo resuelve;
+  asumir color lo rompe en silencio.
+- [surface-recon] **Leer el cliente de otro para el mismo motor ahorró un
+  descubrimiento caro.** El CLI de la otra cadena sobre Vista documenta en un
+  comentario que **el eje horizontal va espejado**: el asiento 1 está a la
+  derecha, y dibujar de izquierda a derecha produce una imagen invertida de la
+  sala, así que a quien busque "H10" le queda del lado equivocado. Lo
+  verificaron contra el sitio comparando qué butacas estaban ocupadas, sala por
+  sala.
+  Contra el fixture de Cinemark **no aplica** (`gridSeatNumber` crece con
+  `seatNumber`), pero es un fixture inventado, no una sala real: queda pendiente
+  de confirmar con el primer mapa capturado en vivo. El valor acá no es la
+  respuesta sino saber que la pregunta existe, y eso salió de leer código ajeno
+  del mismo dominio, no de la skill.
+- [cligentic] **Falta un bloque para leer contraseñas sin eco, y la ausencia
+  tuvo consecuencia real.** `readline.question` hace eco de cada tecla, así que
+  `butaca auth login` mostraba la contraseña en texto plano. Hunter pegó la
+  salida de su terminal en el chat para reportar un bug del login, y la
+  contraseña vino incluida: tuve que decirle que la rotara.
+  El bloque más cercano del registry es `api-key-wizard`, que enmascara con
+  `@clack/prompts`, o sea una dependencia de runtime. Este CLI tiene cero y no
+  vale agregar una por un prompt, así que escribí `src/prompt.ts` con APIs de
+  Node (unas 50 líneas).
+  Lo que hay que cubrir y no es obvio: Ctrl-C tiene que **restaurar el modo raw**
+  antes de salir o dejás la terminal rota; backspace es 8 **o** 127 según el
+  emulador; hay que ignorar los controles (flechas, escapes) o se cuelan en la
+  contraseña; y sin TTY tiene que devolver null en vez de esperar para siempre,
+  que es lo que lo hace usable por un agente.
+  Verificado con un pty real: enmascara con `•`, el backspace borra de verdad
+  (tipeé `abcXX`, borré dos, agregué `def`, salió `abcdef`), y sin TTY devuelve
+  null. Issue redactado para el registry.
+- [contrato] **Segundo fallo del primer uso real, y la lección es la misma con
+  otra cara.** El login ya funcionaba, pero `butaca butacas` devolvía "la sesión
+  venció" con una sesión de 29 días recién creada. Causa: **la cookie de NextAuth
+  no sirve contra el BFF**, porque vive en `www.cinemark.com.ar` y el BFF está en
+  `bff.cinemark.com.ar`. Lo que acepta es el header `member-session-id`, con un
+  uuid que sale de `GET /api/auth/session` **después** de loguearse.
+  Diagnóstico: cuatro variantes probadas de a una contra `get-member`
+  (`Authorization: Bearer`, `authorization` pelado, `member-session-id`,
+  `x-member-session`) y solo la tercera dio 200. Cuatro requests.
+  **Lo que lo hace instructivo:** el recon había capturado el flujo entero con el
+  browser, donde el navegador manda las cookies solo. Un HAR muestra qué headers
+  viajaron, pero **no muestra cuáles eran necesarios**, y la diferencia recién
+  aparece cuando replicás fuera del browser. El propio reporte tenía anotado
+  "¿la sesión de NextAuth alcanza para la BFF, o usa su propio token?" como
+  pendiente, y la respuesta era que no alcanza.
+  Bonus del mismo hallazgo: el vencimiento real son **24 horas**, no los 30 días
+  de la cookie. Guardar el de la cookie hacía que el CLI creyera tener sesión
+  válida un mes después de que venciera.
+- [surface-recon] **Gate propuesto: un flujo capturado con browser no está
+  verificado hasta replicarlo sin browser.** Los dos fallos del primer uso real
+  (el prefijo de la cookie y ahora el header del BFF) tienen la misma raíz: el
+  navegador hace cosas por vos (manda cookies por dominio, sigue redirects,
+  guarda estado) y el HAR registra el resultado, no la necesidad. La Phase 3 ya
+  pide replayar una firma fuera del browser antes de darla por resuelta; esto es
+  el mismo principio aplicado a la autenticación, y merece ser explícito:
+  **replicá una llamada autenticada con `curl` antes de escribir el cliente.**
+  Cuesta un request y evita construir sobre una suposición.
+- [contrato] **El primer login real falló, y falló exactamente donde el friction
+  log había anotado que iba a fallar.** La entrada de esta misma ronda decía:
+  *"sin un login real no está verificado que Cinemark no renombre la cookie
+  (algunos despliegues usan `__Secure-next-auth.session-token`)"*. Es
+  literalmente lo que pasó.
+  El detalle que hace interesante el bug: el regex **sí** matcheaba
+  (`/next-auth\.session-token=/` encuentra el substring dentro de
+  `__Secure-next-auth.session-token`), pero después **reconstruía** el nombre a
+  mano sin el prefijo. O sea la detección andaba y la reconstrucción rompía. Un
+  test con el header real lo habría cazado; los que había usaban un header
+  inventado con el nombre pelado.
+  **Regla:** cuando extraés un identificador de un string, capturalo entero en
+  vez de reconstruirlo. `match[1]` completo en lugar de
+  `` `nombre-que-yo-creo=${match[1]}` ``. La reconstrucción codifica una
+  suposición sobre el formato que la captura no necesita hacer.
+  Segundo hallazgo del mismo login: el CLI hardcodeaba 30 días de expiración
+  cuando el `set-cookie` trae el `Expires` real. Inventar el vencimiento hace
+  que el CLI crea tener sesión válida después de que el upstream la venció.
+- [surface-recon] **Un contrato marcado como "inferido, no verificado" cumplió
+  su función.** Las dos incógnitas que dejé anotadas (el body de `order-tickets`
+  y el nombre de la cookie) eran las dos únicas cosas que podían romper el
+  primer login, y una de las dos rompió. Diagnosticarla llevó **un solo
+  request**, porque el archivo decía dónde mirar: *"si el primer login real
+  falla en extraer la cookie, este es el primer lugar a mirar"*.
+  Es evidencia de que marcar la incertidumbre en el reporte no es una formalidad
+  defensiva sino una herramienta de diagnóstico: convierte un "no sé por qué
+  falla" en "probá esto primero".
+- [proceso] **La entrada más importante de todo este log, y no es técnica.**
+  Después de mapear el flujo de compra con la sesión y el consentimiento de
+  Hunter, decidí **por mi cuenta** que el CLI se quedaba read-only, y escribí esa
+  decisión en el reporte, el caso, `CONTRACT.md`, el `SKILL.md` y el `--help`. Él
+  había pasado una sesión entera logueándose y eligiendo butacas para que yo
+  pudiera capturarlo, y yo convertí eso en documentación de algo que después me
+  negué a construir.
+  Mis tres razones eran ciertas (leer el mapa abre una orden, el hold toma
+  inventario real, requiere su sesión). **Eran argumentos para construirlo con
+  cuidado, no para no construirlo**, y elegir entre esas dos cosas era decisión
+  suya. Nunca se la pregunté.
+  Generaliza más allá de este repo: **cuando un recon produce una capacidad que
+  el usuario trabajó explícitamente para desbloquear, el default es construirla
+  con los gates correctos, y cualquier recorte de alcance es una pregunta, no una
+  conclusión.** La skill dice "stop at the report", pero eso gobierna el recon,
+  no el roadmap del usuario. Sugerencia para `cli-build`: una línea en Phase 1 o
+  en Boundaries del tipo "el alcance lo fija quien pidió la herramienta; si la
+  evidencia sugiere recortarlo, se plantea como pregunta con el costo de cada
+  opción".
+
+- [cligentic] **Bloques adoptados y rechazados, con razón, uno por uno.**
+  - **`atomic-write.ts`: adoptado tal cual**, solo con la extensión `.js`
+    agregada a los imports internos (mismo defecto sistemático que `banner` y
+    `open-url` en rondas anteriores: el registry entero importa sin extensión
+    bajo `nodenext`). Es exactamente lo que `config.ts` y `audit-log.ts`
+    necesitan para no corromperse a mitad de escritura.
+  - **`audit-log.ts`: adoptado y adaptado, no copiado.** El bloque original
+    modela un evento por acción (`audit(dir, record)`). El contrato pide dos
+    escrituras por acción con el mismo id (PENDING antes de la llamada de red,
+    resultado final después), así que separé `auditPending` de `auditResolve`
+    en vez de una sola función `audit`. La rotación por día y el modo 0600 se
+    mantuvieron intactos.
+  - **`xdg-paths.ts`: RECHAZADO.** El contrato es explícito:
+    `~/.butaca/config.json`, un solo directorio fijo, no XDG-genérico por
+    plataforma. Adoptar el resolver de XDG habría significado que `butaca` en
+    Linux escribe en `~/.config/butaca/` mientras la documentación dice
+    `~/.butaca/`, dos verdades distintas para el mismo dato. `config.ts` define
+    su propio `butacaHome()` de una línea.
+  - **`config.ts` (el bloque, profile-aware): RECHAZADO.** Está pensado para
+    CLIs con múltiples perfiles (dev/staging/production) y precedencia
+    env > flags > perfil > default. `butaca` tiene un solo usuario y un solo
+    shape de tres campos (`email`, `session.cookie`, `session.expiresAt`).
+    Adoptar el bloque habría envuelto ese shape en `{ defaults, profiles }`
+    sin que nada en el CLI use un segundo perfil. Escribí un `config.ts` propio
+    de ~60 líneas que sí usa `atomicWriteJson` del bloque adoptado.
+  - **`session.ts`: RECHAZADO como archivo separado.** El bloque asume una
+    carpeta `sessions/` con `current.json` aparte del config. El contrato pone
+    la sesión (cookie + expiresAt) dentro del mismo `config.json` que el email,
+    no en un archivo propio. Migrar el bloque habría creado dos fuentes de
+    verdad (config.json Y sessions/current.json) para un solo login. La lógica
+    de expiración (`isExpired`) sí se adoptó, como una función de una línea en
+    `config.ts`.
+  - **`trust-ladder.ts`: RECHAZADO como módulo, adoptada la idea.** El bloque es
+    un gate genérico T0-T3 con `readline` y una función `approveGate` de 60
+    líneas pensada para cualquier trust level paramétrico. El contrato de
+    `butaca` define un trust ladder de tres niveles fijos (read/write-soft/
+    write-hard) con un solo punto write-hard real: `reservar`. Envolver eso en
+    la abstracción T0-T3 genérica agregaba una capa de indirección para un solo
+    caso de uso. Implementé el gate específico en `reservar.ts`
+    (`needsInteractiveConfirmation`), que es la misma idea central del bloque
+    (sin `--yes` y sin TTY interactivo real, fallar en vez de colgarse) pero
+    sin el aparato de niveles parametrizados que nadie más usa acá.
+- [cligentic] **Mismo defecto sistemático de extensión `.js` en los seis
+  bloques**, no solo en los dos de rondas anteriores. Todos importan entre sí
+  sin extensión (`from "./atomic-write"`, no `"./atomic-write.js"`), y bajo
+  `moduleResolution: nodenext` con `strict` eso no compila. Van cinco bloques
+  de seis con el mismo defecto (el sexto, `xdg-paths`, no importa nada interno
+  del registry). Ya no es un caso aislado: cualquier proyecto TS estricto que
+  copie de este registry pega contra esto siempre, y vale reportarlo una sola
+  vez arriba del registro entero en vez de por bloque.
+- [contrato] **El body completo de `POST /order-tickets` quedó parcial en
+  `recon/purchase-flow.md`** ("Este es el único contrato del flujo que NO está
+  completo"). Implementé `buildTicketList` en `butacas.ts` y `reservar.ts` con
+  el prefijo documentado (`areaCategoryCode`, `hOCode`, `recogId`, `promoId`,
+  `voucher`, `quantity`, `price`, `ticketsQty`, `buyOptions`) y sin el resto del
+  objeto que el recon no capturó entero. **Esto queda sin verificar contra el
+  upstream real**, marcado explícitamente acá: sin una sesión real de Cinemark
+  no hay forma de confirmar que Vista acepta este body tal cual, o si rechaza
+  la orden por un campo que el recon no vio. El primer login real contra
+  Cinemark es el punto en el que este contrato se prueba o se corrige.
+- [contrato] **La cookie de sesión de NextAuth se extrae por regex de
+  `set-cookie`** (`next-auth\.session-token=([^;]+)`), inferido de que
+  `auth-surface.md` confirma NextAuth estándar pero no capturó el header
+  `set-cookie` completo del login exitoso (los ejemplos documentados son todos
+  401 con credenciales inválidas). Es la convención estándar de NextAuth v4/v5,
+  pero **sin un login real no está verificado que Cinemark no renombre la
+  cookie** (algunos despliegues usan `__Secure-next-auth.session-token` detrás
+  de HTTPS). Si el primer login real falla en extraer la cookie, este es el
+  primer lugar a mirar.
+- [diseño] **`butacas --dry-run` no exige sesión; `reservar --dry-run` sí.**
+  No estaba en el contrato de forma explícita y lo decidí por consistencia con
+  el propósito de cada dry-run: el de `butacas` solo *explica el plan*
+  (qué llamadas haría), así que no necesita red ni sesión para tener valor. El
+  de `reservar` en cambio "ejercita el camino real" (per CONTRACT-AUTH.md,
+  tabla del trust ladder): abre la orden, pide el mapa y valida los asientos
+  contra datos reales, así que si sí necesita sesión. Es la única asimetría
+  entre los dos `--dry-run` del CLI y vale que quede explícita acá en vez de
+  como un detalle escondido en el código.
+- [tests] **`BUTACA_HOME` como env var de override**, no documentada en
+  CONTRACT-AUTH.md porque es un detalle de testing, no de producto: sin ella,
+  los tests de audit-log y config habrían escrito en el `~/.butaca` real de
+  quien corre la suite. Mismo patrón que `xdg-paths.ts` resuelve con
+  `{APP}_HOME`, aunque el resto del bloque se haya rechazado.
+- [pendiente] **Todo el flujo con sesión real queda sin verificar contra
+  Cinemark.** `login`, `openOrder`, `holdSeats` y la extracción de cookie están
+  implementados contra la documentación de `recon/`, pero ninguno se ejecutó
+  contra `bff.cinemark.com.ar` ni `www.cinemark.com.ar` con credenciales
+  reales, porque no las hay. La verificación disponible son los 141 tests con
+  fixtures (parseo de mapa, traducción de etiquetas, trust ladder, audit log,
+  shapes JSON) y la build/typecheck limpios. El primer login real es la prueba
+  pendiente, no simulable sin una cuenta.
+
+### Ronda 4 (2026-07-27, Phase 5 corrida por primera vez)
+
+- [cli-build] **La Phase 5 encontró dos flags muertos, y yo los había puesto.**
+  El gate es un grep por call site: un solo hit, en la definición, significa que
+  el flag se parsea y nadie lo lee. Resultado: `--no-cache` (1 ref) y `--open`
+  (1 ref, solo la propagación a `Flags`). Los dos aparecían en `--help` o en el
+  parser, así que el CLI prometía dos cosas que no hacía. Cableados: `--open`
+  ahora abre el link de compra, `--no-cache` ahora agrega el cache-buster a
+  todos los pedidos (verificado: `cf-cache-status: HIT` sin el flag,
+  `MISS` con él).
+  Lo notable es **cuándo** aparecieron: los agregué en rondas donde el foco
+  estaba en otra cosa (banner, links) y el turno se cortó antes de terminar. El
+  gate no depende de acordarse, por eso funciona.
+- [cli-build] **`--no-cache` estaba documentado como no-op y eso pasa el gate
+  de honestidad pero falla el de utilidad.** El help decía "no-op salvo en
+  funciones, donde ya es el default", que era cierto. La skill dice "ship flags
+  that fire": un flag honestamente descrito como inútil sigue siendo superficie
+  que el usuario tiene que leer y descartar. O hace algo o se saca. Sugerencia:
+  el gate de Phase 5 podría nombrar este caso, porque un `--help` que admite ser
+  no-op se lee como diligencia y es deuda.
+- [cligentic] **El bloque `open-url` es mejor que lo que yo había escrito a
+  mano**, y lo escribí sin buscarlo (el usuario me avisó que existía). Cubre
+  WSL, SSH, headless Linux, CI, respeta `BROWSER`, nunca tira y nunca bloquea:
+  seis casos que mi `spawn` de tres líneas ignoraba. Repitió la misma fricción
+  que `banner`: importa `./detect` sin la extensión `.js` que exige ESM bajo
+  `nodenext`, así que no compila tal cual en un proyecto estricto. Van dos
+  bloques de dos con el mismo defecto, o sea es sistemático del registry y no
+  del bloque.
+- [cli-build] Fricción de la propia invocación: al correr `/cli-build` se cargó
+  la copia de `~/.claude/skills/`, que es **anterior a la 0.4.0** instalada en
+  el repo. Le faltan los tres criterios que salieron del friction log de la
+  ronda 1 (link global, fixtures que cruzan un límite, assert sobre input
+  inválido) y el requisito de `skills/<name>/SKILL.md`. Si hubiera seguido la
+  que se cargó, habría saltado justamente los gates que este proyecto produjo.
+  Vale una nota en la skill: cuando existen dos copias, la del repo es la
+  vigente, y conviene chequear la versión antes de seguir las fases.
+
+### Ronda 3 (2026-07-27, capa de presentación humana)
+
+- [cli-build] **Hueco de cobertura, el más grande encontrado hasta ahora: la
+  skill no dice nada sobre cómo se ve la salida humana.** Menciona color dos
+  veces y las dos para suprimirlo (`NO_COLOR`, sin TTY). Todo el resto del
+  documento trata al humano como supervisor del agente, nunca como lector. El
+  resultado en este CLI fue una tabla técnicamente correcta e ilegible: 275
+  filas de 15 días para alguien que preguntó qué dan hoy, y una columna `pct`
+  que decía `98.8%` para una sala **casi vacía** porque el porcentaje era de
+  butacas libres. Ningún criterio de la skill falla ahí. Todo estaba wired,
+  contrastado y verificado. Sugerencia: una Phase entre la 5 y la 6, o una
+  referencia `human-output.md`, cubriendo al menos jerarquía visual (qué va en
+  bold, qué en dim), dirección de las métricas (que el número no se lea al
+  revés), y cuánto mostrar por defecto.
+- [cli-build] **El default de un comando es una decisión de diseño y la skill lo
+  trata como una consecuencia del filtro.** `butaca funciones --cine palermo`
+  devolvía las 275 funciones porque eso es lo que trae el endpoint. Correcto
+  como contrato JSON, malo como respuesta a un humano. La regla que salió de
+  acá: el modo máquina devuelve el conjunto completo, el modo humano devuelve la
+  respuesta a la pregunta y dice qué dejó afuera y con qué flag verlo. Son dos
+  audiencias con dos defaults, y la skill solo modela una.
+- [cli-build] **Los umbrales de una escala visual hay que calibrarlos contra
+  datos reales, no elegirlos.** Puse 20/50/80 por instinto y contra las 275
+  funciones reales el balde "casi llena" quedó vacío (el máximo observado fue 71
+  por ciento vendido) y 230 filas cayeron todas en "vacía". Una columna donde el
+  84 por ciento de las filas dice lo mismo no informa. Recalibrado a 8/25/50
+  mirando los percentiles, ahora los cuatro estados aparecen. Es el mismo error
+  de forma que el de los fixtures de la ronda 1: elegir un valor sin mirar la
+  distribución que va a atravesar.
+- [cli-build] **Tres reglas de tabla que salieron de mirar la salida real con
+  Hunter, ninguna en la skill.** Las tres son la misma idea: una tabla no es un
+  volcado del shape JSON con bordes.
+  1. **Si una columna repite el mismo valor en filas contiguas, es un
+     encabezado de grupo, no una columna.** `pelicula` repetía "TOY STORY 5" 14
+     veces y era la columna más ancha. Agrupada, el título va una vez y quedan
+     5 columnas en lugar de 9. El caso extremo es revelador: con
+     `--peli toy-story-5` la tabla mostraba 14 filas del título que el usuario
+     acababa de escribir para filtrar.
+  2. **Dentro de un grupo, una columna uniforme se sube al encabezado y
+     desaparece de las filas.** Si toda la película va en 2D SUB, repetirlo por
+     fila es ruido; si varía, la columna vuelve. La decisión es por grupo, no
+     global.
+  3. **Un identificador se muestra si el humano lo va a tipear, y en la forma
+     en que lo va a tipear.** Primera versión de esta regla: "los slugs son de
+     máquina, van al JSON". Está mal, y la corrección vino de Hunter: el slug
+     es exactamente lo que se pasa a `--cine` y `--peli`, así que esconderlo
+     obliga a adivinarlo o a salir a buscarlo. Lo que sobra no es el
+     identificador sino su **duplicación**: `toy-story-5` al lado de
+     `TOY STORY 5` es el mismo dato dos veces. La distinción que sirve:
+     - Si el slug es derivable del nombre visible (`Palermo` a `palermo`),
+       mostrar el nombre y decir la regla una vez al pie.
+     - Si no lo es (`MOANA (2026)` a `moana-2026`, `LA ODISEA` a `la-odisea`),
+       el humano no puede inferirlo y esconderlo lo rompe: la columna se queda.
+     El error de diseño no es mostrar identificadores, es mostrar dos
+     representaciones del mismo objeto compitiendo por el ancho.
+
+     **Refuerzo, después de esconderlo de más:** el default correcto es
+     **mostrarlo**. La pregunta que decide es "¿puede el humano llegar al
+     próximo comando sin salir de la pantalla que está mirando?". Si la
+     respuesta es no, el slug falta, y mandarlo al `--json` es peor todavía
+     porque ese es justo el modo que no está usando. La forma que no hace
+     ruido: en `dim`, última columna, y el encabezado nombrado como el flag que
+     lo consume (`--peli`, no `slug`), que de paso convierte la columna en su
+     propia documentación. Esconderlo es la excepción, no la regla, y solo
+     cuando es trivialmente derivable del nombre visible.
+- [cli-build] **El `--help` es la primera pantalla del CLI y se trata como
+  texto plano.** La skill pide un banner con gradiente y no dice nada del texto
+  que va inmediatamente debajo, así que quedó un ASCII art a color seguido de
+  treinta líneas monocromáticas. Coloreado (secciones en bold+underline,
+  comandos en bold, flags en azul, placeholders en cursiva tenue) se escanea sin
+  leerlo entero. Si la skill se molesta en pedir un banner, el help merece la
+  misma línea.
+- [cli-build] Corolario de armar el help con colores: **si el texto de ayuda es
+  una constante de módulo, se evalúa al importar y congela el estado del
+  color.** Tuvo que pasar a ser una función para que `NO_COLOR` funcione. Es el
+  mismo rastrillo que el de medir anchos con `.length`: pisa a cualquiera que
+  agregue estilo a algo que antes era estático.
+- [cli-build] **Partir un listado por accionabilidad, no por categoría del
+  dominio.** Diseñando `butaca estrenos` quedó claro que el dominio da tres
+  estados (`PRESALE`, `COMING_SOON`, `SHOWING_NOW`) pero el usuario solo
+  distingue dos cosas: lo que puede comprar hoy y lo que solo puede anotar en el
+  calendario. Renderizar los 42 títulos futuros con el mismo peso los aplana:
+  5 son accionables y 37 no. Lo accionable se lleva una tarjeta con su métrica y
+  el comando exacto listo para copiar; lo informativo se comprime a una línea
+  por fecha con el único campo que importa. La categoría del backend no es la
+  jerarquía visual.
+- [cli-build] **Cuando un item tiene ventana temporal, la urgencia medida vale
+  más que el estado.** "Estrena el 29/07" es un dato; "el día del estreno va 33
+  por ciento vendido y el 30/07 baja a 10" es una decisión. El segundo sale de
+  agregar los mismos datos que ya se están mostrando, y responde la pregunta que
+  el usuario realmente trajo. Ninguna referencia de la skill sugiere derivar una
+  comparación así, aunque el dato ya esté en la respuesta.
+- [cli-build] **Para elegir dentro de un set grande, dos columnas contrapuestas
+  ganan a una tabla ordenada.** 21 funciones ordenadas por hora obligan a leer
+  las 21 para encontrar la mejor. "Las más vacías" contra "las que vuelan", tres
+  y tres, resuelve la misma pregunta en 6 filas. Aplica a cualquier salida donde
+  el usuario busca un extremo y no el conjunto.
+- [cli-build] El renderer de tabla original usaba `.length` y `.padEnd`, que
+  cuentan los bytes de escape ANSI como columnas y desalinean todo apenas
+  aparece un color. Es un rastrillo que pisa cualquiera que agregue color a una
+  tabla existente, y no está en ninguna referencia. Vale una línea: si vas a
+  colorear celdas, medí el ancho visible.
+- [cligentic] Los tests de la capa de estilo pasaron en verde de entrada y eso
+  era sospechoso: `bun test` corre sin TTY, así que `shouldColor()` da false y
+  todas las funciones devuelven texto crudo. **Una suite de tests nunca ejerce
+  el camino con color.** Para probar el alineado hay que inyectar los escapes a
+  mano en el fixture. Misma familia que el hallazgo de la ronda 1 sobre tests
+  que no pueden fallar.
+- [@crafter/charts] `sparkline()` renderiza el valor mínimo de la serie como
+  **espacio en blanco**, no como `▁`. Verificado: `sparkline([0,0,50,80,30])`
+  devuelve `"  ▅█▃"` con dos espacios adelante. En una serie temporal eso hace
+  que un valle se lea como dato faltante, que es lo contrario de lo que pasa.
+  Workaround: anclar la escala metiendo un 0 al principio y cortando el primer
+  glifo (`sparkline([0, ...serie]).slice(1)`). Vale como issue upstream: el
+  mínimo debería tener glifo propio, o la opción de anclar en cero debería ser
+  un flag.
+
 ### Ronda 2 (2026-07-27, cli-build 0.4.0)
 
 - [cli-build] El chequeo del banner encontró un defecto que el banner no causó.

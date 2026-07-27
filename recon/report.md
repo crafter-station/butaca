@@ -2,10 +2,10 @@
 type: surface-recon
 target: https://www.cinemark.com.ar (Cinemark Hoyts Argentina)
 created: 2026-07-27
-terrain: B
-auth: none (for every endpoint mapped); NextAuth credentials session for account features
+terrain: B (read surface) + C (purchase surface, behind login)
+auth: none for the read surface, one unvalidated header; account session for purchase
 official-api: no
-confidence: high (read surface) / low (purchase surface)
+confidence: high on both surfaces, each driven end to end
 ---
 
 # Cinemark Argentina, Recon
@@ -14,8 +14,10 @@ confidence: high (read surface) / low (purchase surface)
 
 Cinemark Hoyts is the dominant cinema chain in Argentina, 24 theaters. The site
 is a Next.js SPA behind Cloudflare that reads from a public BFF at
-`bff.cinemark.com.ar`. Ticket purchase runs through a separate flow that this
-recon could not enter, which is the finding that decides the verdict.
+`bff.cinemark.com.ar`. It exposes **two surfaces**: an anonymous read surface
+(theaters, movies, showtimes, live occupancy) and a purchase surface behind an
+account login. Both are mapped; the verdict recommends building only the first,
+and the reason is not feasibility.
 
 ## Official surface
 
@@ -126,8 +128,10 @@ from the ratio.**
 queue was not active, but it exists and will engage on a high-demand release.
 Any client must handle being queued.
 
-**The purchase flow could not be entered, and this is the central finding.**
-What was tried, all of it failing:
+**The purchase flow could not be entered from the anonymous surface.** This was
+read at the time as the central finding, and it was wrong: the flow opens a login
+panel, which none of the attempts below detected because none of them looked at
+the screen. See the Correction section below. What was tried, all of it failing:
 
 - Clicking a showtime on the theater listing page: native click via
   agent-browser ref, JS `.click()`, and `.click()` after `scrollIntoView`.
@@ -146,7 +150,9 @@ DoubleClick beacon with `type=carrito` and a Google Ads conversion with
 `"value":"Palermo SELECCIONAR"`. So the handler runs. It reports the intent to
 three ad networks and then does not navigate.
 
-**No purchase endpoint exists in any bundle that was read.** The listing page
+**No purchase endpoint appears in any bundle read from the anonymous surface.**
+(With a session, the endpoints do exist and are listed in the Correction section.
+They are not in these bundles because the purchase code loads on demand.) The listing page
 bundle exposes exactly seven paths, all reads: `cinema/formats`, `locations`,
 `movie/`, `movies`, `movies/slug/`, `showtimes`, `theaters`. All 42 chunks of
 the `/compra-entradas` route were downloaded and searched: the only
@@ -241,58 +247,122 @@ Each item names the step that would confirm it.
 8. **Authenticated behavior, entirely.** No account was used. Nothing about
    signed-in endpoints, session lifetime, or token rotation is known.
 
+## Correction, 2026-07-27: two surfaces, both now mapped
+
+Everything above was written from the anonymous surface alone, and it framed the
+purchase flow as technically unreachable. That was wrong twice over, and both
+corrections landed the same day.
+
+**First: the blocker was a login, not a wall.** Clicking a showtime and then
+"Comprar entradas" opens a login panel. Eight technical attempts concluded the
+click "did nothing"; the user clicked it by hand and the panel appeared. The
+account of that error is in [seat-map-attempts.md](seat-map-attempts.md), and it
+is worth reading because the mistake is more instructive than the result.
+
+**Second: with an account, the whole purchase surface opened.** Captured by
+driving the site with the account holder's own session and consent, across two
+different sessions (2D and 3D) so parameters could be told apart from paths. The
+HAR was deleted immediately after extraction; it carried email, phone, memberId
+and live cookies.
+
+So this target has **two surfaces, not one terrain**:
+
+| Surface | Terrain | Auth | Status |
+|---|---|---|---|
+| Read (theaters, movies, showtimes, occupancy) | B | none, one header | fully mapped |
+| Purchase (prices, seat map, hold) | C | account session | fully mapped |
+
+### The authenticated endpoint table
+
+All observed with a live session. Base `https://bff.cinemark.com.ar/api` unless
+noted. Full shapes and the nine-step sequence in
+[purchase-flow.md](purchase-flow.md); the login and registration contracts in
+[auth-surface.md](auth-surface.md).
+
+| Method | Path | Purpose | Verified |
+|---|---|---|---|
+| POST | `www/api/auth/callback/credentials` | Login (NextAuth) | observed |
+| GET | `www/api/auth/csrf` | CSRF, required before the POST | observed + replayed |
+| GET | `/get-member` | Member record, yields `memberId` | observed |
+| GET | `/cinema/showtimes/upgrade?theaterId=&sessionId=&sessionFormat=` | Session detail | observed |
+| GET | `/get-prices?cinemaId=&sessionId=&salesChannelToken=&memberId=` | Member-specific pricing | observed |
+| POST | `/order-tickets` | **Opens the order**, returns `transIdTemp` | observed |
+| GET | `/order-get-map?cinemaId=&transIdTemp=&sessionId=` | **The seat map** | observed |
+| POST | `/order-set-seats` | **The hold**, by grid coordinates | observed |
+| GET | `/order-get-totals?transIdTemp=&cinemaId=` | Order totals | observed |
+| GET | `/get-candy`, `/get-merchandising` | Concessions | observed |
+| POST | `/create-member` + `/create-member-callback` | Registration, two-step with email | observed |
+| POST | `/reminder-password` | Password recovery | observed + replayed |
+
+**The ordering is the non-obvious part:** `order-tickets` must run before
+`order-get-map`. There is no way to read a seat map without first opening an
+order, which makes "check the seats" a write against their system rather than a
+read.
+
+**Payment was deliberately not exercised.** The capture stopped before card
+entry.
+
 ## Verdict
 
-**Build it, narrowly. The read half only, and not the half you asked for.**
+**Build the read surface. Do not build the purchase surface, even though it is
+now fully mapped.**
 
-The read surface is better than expected: ten unauthenticated JSON endpoints,
-one header, no rate limit, stable REST shapes, and live seat-availability counts
-per session for free. A CLI that answers "what is showing near me, in what
-format, with how many seats left" can be built today and is genuinely useful.
+This verdict changed twice. It started as "the hold step is unmapped"; then the
+mapping succeeded; and the recommendation still came out the same, for a reason
+that has nothing to do with feasibility.
 
-**The purchase half is blocked, and the brief's assumption about where to stop
-does not survive contact.** The plan was to go as far as `hold` and hand off a
-checkout URL. This recon could not observe a single purchase request. There is
-no seat endpoint, no hold endpoint, and no cart endpoint in any bundle read, and
-the showtime click emits ad-network conversion beacons while performing no
-navigation at all under automation. That is either a client-side bot gate or a
-flow that lives entirely on a host this recon did not enter.
+### Build: the read surface
 
-Either way, **the honest position is that the hold step is unmapped, not merely
-unimplemented.** Building toward it now means building against a guess.
+Ten unauthenticated JSON endpoints, one unvalidated header, no rate limit, stable
+REST shapes, and live seat-availability counts per session. A CLI answering "what
+is showing near me, in what format, with how many seats left" is buildable today
+and needs no account. **This is what `butaca` is.**
 
-The scope cut in the brief was drawn in the right spirit and one step too
-optimistic. The real line is one step earlier: the CLI can find the showing and
-tell you how full it is, then hand off to the browser. It cannot hold a seat,
-because nothing observed here shows how a seat is held.
+### Do not build: the purchase surface
 
-**Maintenance risk.** Every endpoint is undocumented and unversioned, with no
-deprecation path. The shapes look stable (clean REST, consistent envelope,
-`{data: [...]}` throughout) and the read endpoints are the ones the site's own
-homepage depends on, so they are unlikely to vanish quietly. The realistic
-failure mode is a field rename inside `occupation` or a new required header
-appearing alongside `country`. Both are cheap to detect with a smoke test and
-cheap to fix. That is a very different risk profile from the purchase flow,
-which is bot-sensitive by design and would break on purpose.
+Not because it is out of reach. The seat map (`order-get-map`), the hold
+(`order-set-seats`) and the full nine-step sequence are captured, with shapes,
+in [purchase-flow.md](purchase-flow.md). A client could be written from that
+document alone.
 
-**Recommendation:** build `butaca` against the read surface now. Before writing
-a single line toward `hold`, spend twenty minutes completing one purchase
-manually with devtools recording. That capture either unblocks the purchase half
-or converts item 2 above into a documented "do not build" with evidence.
+The reason is what the calls **do**:
 
-## Evidence
+1. **Reading the seat map is a write.** `order-tickets` must open an order before
+   `order-get-map` will answer. A `butaca asientos <session>` command would
+   create a transaction in their system on every invocation, including the ones
+   where the user is just looking.
+2. **The hold takes real inventory.** `order-set-seats` blocks seats other people
+   could buy. An automated client that holds and abandons costs the chain
+   revenue and costs other customers seats.
+3. **It requires the user's own account session**, which means a CLI would be
+   automating credentials against a service whose terms were never reviewed for
+   that use.
 
-Kept out of version control; HARs hold live cookies.
+Any one of those is enough. Together they make the purchase half a place where
+building is possible and inadvisable.
 
-| Artifact | Path | Note |
-|---|---|---|
-| HAR, home plus theater listing | `/tmp/cnk1.har` | 195 requests, first BFF capture |
-| HAR, guessed purchase route | `/tmp/cnk2.har` | 167 requests, the 404 |
-| HAR, movie page headless | `/tmp/cnk3.har` | 550 requests |
-| HAR, movie page headed | `/tmp/cnk4.har` | 127 requests, the `bttype=purchase` beacon |
-| Screenshot, movie page | `/tmp/cnk-movie.png` | Palermo selected, showtimes visible |
-| Decoded public config | `scratchpad/envs.json` | 75 keys, 3,911 chars decoded |
-| Purchase-route bundles | `scratchpad/js/` | 42 chunks, 3.2 MB |
+### Maintenance risk
 
-Delete the HARs when the follow-up capture is done. They contain live session
-cookies.
+Every endpoint is undocumented and unversioned, with no deprecation path. The
+read shapes look stable: clean REST, a consistent `{data: [...]}` envelope, and
+they back the site's own homepage, so they will not vanish quietly. The realistic
+failure is a field rename inside `occupation` or a new required header next to
+`country`, both cheap to detect with a smoke test.
+
+The purchase endpoints carry a different risk profile entirely: they sit behind a
+session, they mutate state, and the site actively resists automated input (the
+phone-validation field ignores synthetic events, and showtime clicks do not
+navigate under automation). Anything built there breaks on purpose, not by
+accident.
+
+### What a next implementer should read
+
+- This report: the read surface and its gotchas.
+- [purchase-flow.md](purchase-flow.md): the authenticated sequence, seat-map
+  shape, and hold contract. Written to be buildable, kept as documentation of
+  what exists rather than an invitation.
+- [auth-surface.md](auth-surface.md): login, registration and recovery contracts.
+- [seat-map-attempts.md](seat-map-attempts.md): eight approaches that failed, and
+  why the conclusion drawn from them was wrong. The most reusable file of the set.
+- [friction.md](friction.md): what slowed the recon down, for whoever maintains
+  the skill.

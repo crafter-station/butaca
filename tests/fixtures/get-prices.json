@@ -1,0 +1,75 @@
+{
+  "code": 0,
+  "data": [
+    {
+      "categoryId": 1,
+      "title": "GENERAL",
+      "cssClass": "standard",
+      "showTitle": true,
+      "tickets": [
+        {
+          "quantity": 1,
+          "hoCode": "1697",
+          "title": "Entrada General\n",
+          "cssClass": "ticket-reg",
+          "description": "Entrada general",
+          "ticketsQty": 1,
+          "onlyBuy": true,
+          "onlyBook": false,
+          "buyOptions": [
+            {
+              "recogId": 0,
+              "promoId": 0,
+              "cssClass": "ticket-price-reg",
+              "value": 2000000,
+              "valueWithoutTax": 1526700,
+              "service": 105000,
+              "buttonQty": 1,
+              "maxQty": 6,
+              "type": 3,
+              "level": 0,
+              "balances": []
+            }
+          ],
+          "colorCode": "",
+          "imageUrl": ""
+        }
+      ]
+    },
+    {
+      "categoryId": 2,
+      "title": "SOCIOS",
+      "cssClass": "socios",
+      "showTitle": true,
+      "tickets": [
+        {
+          "quantity": 1,
+          "hoCode": "1699",
+          "title": "Entrada Socio\n",
+          "cssClass": "ticket-socio",
+          "description": "Entrada socio",
+          "ticketsQty": 1,
+          "onlyBuy": true,
+          "onlyBook": false,
+          "buyOptions": [
+            {
+              "recogId": 1,
+              "promoId": 5,
+              "cssClass": "ticket-price-socio",
+              "value": 1500000,
+              "valueWithoutTax": 1145500,
+              "service": 78500,
+              "buttonQty": 1,
+              "maxQty": 6,
+              "type": 3,
+              "level": 0,
+              "balances": []
+            }
+          ],
+          "colorCode": "",
+          "imageUrl": ""
+        }
+      ]
+    }
+  ]
+}

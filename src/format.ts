@@ -1,9 +1,14 @@
 import { ApiError, nowIso, source } from "./api.js";
+import { anchoVisible, bold, dim, padVisible } from "./style.js";
 import type { Envelope, EnvelopeMeta } from "./types.js";
 
 export interface Flags {
   json: boolean;
   noCache: boolean;
+  todas: boolean;
+  todos: boolean;
+  open: boolean;
+  numeros: boolean;
   help: boolean;
   version: boolean;
   fields: string[] | null;
@@ -36,9 +41,18 @@ export function fail(error: ApiError): Envelope<never> {
   };
 }
 
+const EXIT_1_CODES = new Set([
+  "BAD_INPUT",
+  "NOT_FOUND",
+  "AUTH_REQUIRED",
+  "AUTH_EXPIRED",
+  "AUTH_FAILED",
+  "SEATS_UNAVAILABLE",
+]);
+
 export function exitCodeFor(envelope: Envelope<unknown>): number {
   if (envelope.ok) return 0;
-  if (envelope.error.code === "BAD_INPUT" || envelope.error.code === "NOT_FOUND") {
+  if (EXIT_1_CODES.has(envelope.error.code)) {
     return 1;
   }
   return 2;
@@ -51,7 +65,10 @@ export function printEnvelope(envelope: Envelope<unknown>): void {
 export function reportError(machineMode: boolean, error: ApiError): number {
   const envelope = fail(error);
   if (machineMode) {
-    process.stderr.write(`${JSON.stringify(envelope, null, 2)}\n`);
+    // El envelope de error es salida estructurada, no diagnóstico: va a stdout
+    // como el de éxito. Si va a stderr, un `--json | jq` recibe stdout vacío y
+    // el agente pierde el code y el hint que existen para que se recupere.
+    process.stdout.write(`${JSON.stringify(envelope, null, 2)}\n`);
   } else {
     process.stderr.write(`Error: ${error.message}\n`);
     process.stderr.write(`  ${error.hint}\n`);
@@ -101,15 +118,26 @@ export function renderTable(rows: Array<Record<string, unknown>>, columns: strin
     headers.map((header) => stringifyCell(row[header])),
   );
 
+  // Ancho visible, no .length: las celdas pueden traer escapes ANSI que no
+  // ocupan columnas pero sí cuentan como caracteres.
   const widths = headers.map((header, i) => {
-    const lengths = [header.length, ...cellValues.map((cells) => cells[i]?.length ?? 0)];
+    const lengths = [
+      anchoVisible(header),
+      ...cellValues.map((cells) => anchoVisible(cells[i] ?? "")),
+    ];
     return Math.max(...lengths);
   });
 
-  const headerLine = headers.map((header, i) => header.padEnd(widths[i] ?? 0)).join("  ");
-  const separatorLine = widths.map((w) => "-".repeat(w)).join("  ");
+  const headerLine = headers
+    .map((header, i) => padVisible(bold(header), widths[i] ?? 0))
+    .join("  ")
+    .trimEnd();
+  const separatorLine = dim(widths.map((w) => "─".repeat(w)).join("  "));
   const bodyLines = cellValues.map((cells) =>
-    cells.map((cell, i) => cell.padEnd(widths[i] ?? 0)).join("  "),
+    cells
+      .map((cell, i) => padVisible(cell, widths[i] ?? 0))
+      .join("  ")
+      .trimEnd(),
   );
 
   return [headerLine, separatorLine, ...bodyLines].join("\n");

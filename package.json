@@ -20,5 +20,8 @@
     "@types/node": "^26.1.1",
     "bun-types": "^1.3.14",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@crafter/charts": "^0.2.4"
   }
 }

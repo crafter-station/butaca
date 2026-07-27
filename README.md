@@ -68,21 +68,57 @@ Envelope estable en todos los comandos:
 Códigos de salida: `0` todo bien, `1` error tuyo, `2` falla del sistema o de la
 API.
 
+## Con tu cuenta: butacas y reserva
+
+Estos necesitan cuenta de Cinemark. La contraseña va al keychain de macOS, nunca
+al disco.
+
+```bash
+butaca auth login                     # guarda credenciales, abre sesión
+butaca butacas 159037 --cine palermo  # dibuja el mapa de la sala
+butaca reservar 159037 --cine palermo --asientos F12,F13
+```
+
+El mapa se dibuja por coordenada de grilla, así que los pasillos aparecen como
+huecos reales:
+
+```
+   P A N T A L L A
+   ────────────────
+
+   187 libres de 250
+
+ A  █ █ █   █ █ █ █ █   █ █ █
+ B  █ █ █   █ █ █ █ █   █ █ █
+
+█ libre   █ ocupada   █ accesible   █ fuera de servicio
+```
+
+Los dos comandos tienen `--dry-run`, y `reservar` pide confirmación explícita.
+
+**Ojo con `butacas`:** ver el mapa exige abrir una orden en el sistema de
+Cinemark, o sea consultar ya escribe. Correrlo diez veces deja diez
+transacciones abiertas. El comando lo avisa.
+
+**Y `reservar` toma inventario real**, bloqueando butacas que otra persona no va
+a poder comprar.
+
 ## Qué no hace
 
-**No compra entradas.** No reserva butacas y no automatiza el pago.
+**No automatiza el pago.** `reservar` termina devolviendo la URL de checkout con
+la orden armada, y el pago lo hacés en el sitio.
 
-No es una decisión de alcance sino un hallazgo: el flujo de compra de Cinemark
-no expone ningún endpoint de asientos ni de reserva observable. El detalle, con
-la evidencia, está en `recon/report.md`.
-
-Para comprar, `butaca` te dice qué función te conviene y el resto lo hacés en el
-sitio.
+Ese corte es deliberado: Cinemark mete 3-D Secure del banco, y automatizarlo
+cruza a territorio de fraude.
 
 ## Cómo funciona
 
-Lee la API pública que usa el propio sitio de Cinemark. Sin credenciales, sin
-cuenta, sin scraping de HTML. Solo lecturas de datos que ya son públicos.
+Habla con la misma API que usa el sitio de Cinemark, sin scraping de HTML.
+
+**Dos superficies.** La de lectura (cartelera, horarios, butacas libres) es
+pública: un header y nada más, sin cuenta. La de compra (mapa de asientos,
+reserva) necesita tu sesión. El mapeo completo de ambas, con la evidencia, está
+en `recon/`.
 
 Dos detalles que importan y están documentados en `CONTRACT.md`:
 

@@ -4,6 +4,7 @@ import {
   matchesFormato,
   matchesIdioma,
   matchesLibres,
+  agruparPorPelicula,
   sortKey,
   toFuncion,
 } from "../src/commands/funciones.js";
@@ -126,5 +127,63 @@ describe("filtros de funciones", () => {
     for (const f of funciones) {
       expect(matchesLibres(f, null)).toBe(true);
     }
+  });
+});
+
+describe("agruparPorPelicula", () => {
+  const f = (nombre: string, hora: string, formato = "2D", idioma = "SUB"): Funcion =>
+    ({
+      sessionId: `${nombre}-${hora}`,
+      // Un corporateId por película: el agrupado usa esa clave y no el nombre,
+      // para no descartar el identificador que necesita --peli.
+      movie: { corporateId: `cid-${nombre}`, name: nombre },
+      theater: { id: "733", room: "4" },
+      dateTime: `27/07/2026 ${hora}`,
+      displayDate: "2026-07-27",
+      format: formato,
+      language: idioma,
+      seats: { available: 100, capacity: 200, pct: 50 },
+    }) as Funcion;
+
+  it("el titulo aparece una sola vez por grupo", () => {
+    const out = agruparPorPelicula([f("LA ODISEA", "11:30"), f("LA ODISEA", "14:00")]);
+    expect(out.split("LA ODISEA").length - 1).toBe(1);
+  });
+
+  it("ordena los grupos por hora de inicio, no alfabeticamente", () => {
+    const out = agruparPorPelicula([f("ZORRO", "10:00"), f("ALFA", "20:00")]);
+    expect(out.indexOf("ZORRO")).toBeLessThan(out.indexOf("ALFA"));
+  });
+
+  // Si toda la pelicula va en un formato, ya lo dice el encabezado del grupo.
+  it("omite la columna formato cuando es uniforme", () => {
+    const out = agruparPorPelicula([f("A", "11:00", "2D"), f("A", "13:00", "2D")]);
+    const cuerpo = out.split("\n").slice(1).join("\n");
+    expect(cuerpo).not.toContain("2D");
+  });
+
+  it("muestra la columna formato cuando varia", () => {
+    const out = agruparPorPelicula([f("A", "11:00", "2D"), f("A", "13:00", "3D")]);
+    const cuerpo = out.split("\n").slice(1).join("\n");
+    expect(cuerpo).toContain("3D");
+  });
+
+  it("separa peliculas distintas aunque compartan horario", () => {
+    const out = agruparPorPelicula([f("A", "11:00"), f("B", "11:00")]);
+    expect(out).toContain("A");
+    expect(out).toContain("B");
+    expect(out.split("\n\n").length).toBe(2);
+  });
+
+  // El humano tiene que poder copiar el próximo comando sin salir de la pantalla.
+  it("emite el comando completo cuando hay slug y cine", () => {
+    const slugs = new Map([["cid-LA ODISEA", "la-odisea"]]);
+    const out = agruparPorPelicula([f("LA ODISEA", "11:00")], slugs, "palermo");
+    expect(out).toContain("butaca funciones --cine palermo --peli la-odisea");
+  });
+
+  it("omite el comando cuando no hay slug conocido", () => {
+    const out = agruparPorPelicula([f("LA ODISEA", "11:00")], new Map(), "palermo");
+    expect(out).not.toContain("--peli");
   });
 });

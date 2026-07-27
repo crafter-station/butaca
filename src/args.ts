@@ -3,8 +3,14 @@ export interface ParsedArgs {
   positional: string[];
   json: boolean;
   noCache: boolean;
+  todas: boolean;
+  todos: boolean;
+  open: boolean;
+  numeros: boolean;
   help: boolean;
   version: boolean;
+  dryRun: boolean;
+  yes: boolean;
   fields: string[] | null;
   cine: string | null;
   peli: string | null;
@@ -12,9 +18,21 @@ export interface ParsedArgs {
   formato: string | null;
   idioma: string | null;
   libres: number | null;
+  asientos: string[] | null;
+  email: string | null;
+  password: string | null;
 }
 
-const KNOWN_COMMANDS = ["cines", "cartelera", "funciones", "schema"];
+const KNOWN_COMMANDS = [
+  "cines",
+  "cartelera",
+  "funciones",
+  "estrenos",
+  "schema",
+  "auth",
+  "butacas",
+  "reservar",
+];
 
 export class ArgParseError extends Error {}
 
@@ -27,6 +45,9 @@ function takesValue(flag: string): boolean {
     "--idioma",
     "--libres",
     "--fields",
+    "--asientos",
+    "--email",
+    "--password",
   ].includes(flag);
 }
 
@@ -36,8 +57,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
     positional: [],
     json: false,
     noCache: false,
+    todas: false,
+    todos: false,
+    open: false,
+    numeros: false,
     help: false,
     version: false,
+    dryRun: false,
+    yes: false,
     fields: null,
     cine: null,
     peli: null,
@@ -45,6 +72,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
     formato: null,
     idioma: null,
     libres: null,
+    asientos: null,
+    email: null,
+    password: null,
   };
 
   let i = 0;
@@ -65,6 +95,26 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
       continue;
     }
+    if (token === "--todas") {
+      result.todas = true;
+      i += 1;
+      continue;
+    }
+    if (token === "--numeros") {
+      result.numeros = true;
+      i += 1;
+      continue;
+    }
+    if (token === "--open") {
+      result.open = true;
+      i += 1;
+      continue;
+    }
+    if (token === "--todos") {
+      result.todos = true;
+      i += 1;
+      continue;
+    }
     if (token === "--help" || token === "-h") {
       result.help = true;
       i += 1;
@@ -72,6 +122,16 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
     if (token === "--version" || token === "-v") {
       result.version = true;
+      i += 1;
+      continue;
+    }
+    if (token === "--dry-run") {
+      result.dryRun = true;
+      i += 1;
+      continue;
+    }
+    if (token === "--yes") {
+      result.yes = true;
       i += 1;
       continue;
     }
@@ -99,6 +159,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
           break;
         case "--fields":
           result.fields = value.split(",").map((f) => f.trim()).filter((f) => f.length > 0);
+          break;
+        case "--asientos":
+          result.asientos = value.split(",").map((f) => f.trim()).filter((f) => f.length > 0);
+          break;
+        case "--email":
+          result.email = value;
+          break;
+        case "--password":
+          result.password = value;
           break;
         case "--libres": {
           const parsed = Number(value);

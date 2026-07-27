@@ -1,0 +1,99 @@
+{
+  "data": [
+    {
+      "id": "a1a1a1a1-0000-0000-0000-000000000001",
+      "corporateId": "200001",
+      "slug": "spider-man-un-nuevo-dia",
+      "title": "SPIDER-MAN: UN NUEVO DÍA",
+      "recommended": true,
+      "openingDate": "2026-07-29T00:00:00.000Z",
+      "runTime": 148,
+      "premiere": true,
+      "status": "PRESALE",
+      "rating": "ATP",
+      "formats": [
+        { "name": "2D", "shortName": "2D" },
+        { "name": "3D", "shortName": "3D" },
+        { "name": "IMAX", "shortName": "XD" }
+      ]
+    },
+    {
+      "id": "a1a1a1a1-0000-0000-0000-000000000002",
+      "corporateId": "200002",
+      "slug": "otra-preventa",
+      "title": "OTRA PREVENTA",
+      "recommended": false,
+      "openingDate": "2026-08-05T00:00:00.000Z",
+      "runTime": 100,
+      "premiere": true,
+      "status": "PRESALE",
+      "rating": "SAM13",
+      "formats": [{ "name": "2D", "shortName": "2D" }]
+    },
+    {
+      "id": "a1a1a1a1-0000-0000-0000-000000000003",
+      "corporateId": "200003",
+      "slug": "franz",
+      "title": "FRANZ",
+      "recommended": false,
+      "openingDate": "2026-08-06T00:00:00.000Z",
+      "runTime": 110,
+      "premiere": false,
+      "status": "COMING_SOON",
+      "rating": "SAM16",
+      "formats": [{ "name": "2D", "shortName": "2D" }]
+    },
+    {
+      "id": "a1a1a1a1-0000-0000-0000-000000000004",
+      "corporateId": "200004",
+      "slug": "el-dia-d-bajo-presion",
+      "title": "EL DÍA D: BAJO PRESIÓN",
+      "recommended": false,
+      "openingDate": "2026-08-06T00:00:00.000Z",
+      "runTime": 120,
+      "premiere": false,
+      "status": "COMING_SOON",
+      "rating": "SAM13",
+      "formats": [{ "name": "2D", "shortName": "2D" }]
+    },
+    {
+      "id": "a1a1a1a1-0000-0000-0000-000000000005",
+      "corporateId": "200005",
+      "slug": "engendro",
+      "title": "ENGENDRO",
+      "recommended": false,
+      "openingDate": "2026-08-06T00:00:00.000Z",
+      "runTime": 95,
+      "premiere": false,
+      "status": "COMING_SOON",
+      "rating": "SAM16",
+      "formats": [{ "name": "2D", "shortName": "2D" }]
+    },
+    {
+      "id": "a1a1a1a1-0000-0000-0000-000000000006",
+      "corporateId": "200006",
+      "slug": "la-invitacion",
+      "title": "LA INVITACIÓN",
+      "recommended": false,
+      "openingDate": "2026-08-06T00:00:00.000Z",
+      "runTime": 105,
+      "premiere": false,
+      "status": "COMING_SOON",
+      "rating": "SAM13",
+      "formats": [{ "name": "2D", "shortName": "2D" }]
+    },
+    {
+      "id": "a1a1a1a1-0000-0000-0000-000000000007",
+      "corporateId": "200007",
+      "slug": "toy-story-5",
+      "title": "TOY STORY 5",
+      "recommended": true,
+      "openingDate": "2026-06-18T00:00:00.000Z",
+      "runTime": 102,
+      "premiere": false,
+      "status": "SHOWING_NOW",
+      "rating": "G",
+      "formats": [{ "name": "2D", "shortName": "2D" }]
+    }
+  ]
+}

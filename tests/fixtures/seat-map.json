@@ -1,0 +1,84 @@
+{
+ "Code": 0,
+ "Message": "OK",
+ "Data": {
+  "physicalScreenLeft": "0",
+  "physicalScreenWidth": "100",
+  "screenBoundaryPositionLeft": "0",
+  "totalNumberOfAreas": 1,
+  "areas": [
+   {
+    "areaNumber": "1",
+    "areaCategory": "0000000001",
+    "areaLayoutRows": 2,
+    "areaLayoutColumns": 6,
+    "totalNumberOfRows": 2,
+    "rows": [
+     {
+      "seatGridRowId": "2",
+      "rowPhysicalId": "A",
+      "seats": [
+       {
+        "gridSeatNumber": 6,
+        "seatNumber": "1",
+        "seatStatus": 0
+       },
+       {
+        "gridSeatNumber": 5,
+        "seatNumber": "2",
+        "seatStatus": 1
+       },
+       {
+        "gridSeatNumber": 3,
+        "seatNumber": "3",
+        "seatStatus": 3
+       },
+       {
+        "gridSeatNumber": 2,
+        "seatNumber": "4",
+        "seatStatus": 4
+       },
+       {
+        "gridSeatNumber": 1,
+        "seatNumber": "5",
+        "seatStatus": 5
+       }
+      ]
+     },
+     {
+      "seatGridRowId": "1",
+      "rowPhysicalId": "B",
+      "seats": [
+       {
+        "gridSeatNumber": 6,
+        "seatNumber": "1",
+        "seatStatus": 6
+       },
+       {
+        "gridSeatNumber": 5,
+        "seatNumber": "2",
+        "seatStatus": 7
+       },
+       {
+        "gridSeatNumber": 3,
+        "seatNumber": "3",
+        "seatStatus": 8
+       },
+       {
+        "gridSeatNumber": 2,
+        "seatNumber": "4",
+        "seatStatus": 0
+       },
+       {
+        "gridSeatNumber": 1,
+        "seatNumber": "5",
+        "seatStatus": 0
+       }
+      ]
+     }
+    ],
+    "seatDescriptions": {}
+   }
+  ]
+ }
+}

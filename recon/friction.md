@@ -9,6 +9,189 @@ is the input that decides whether they graduate to stable.
 
 ## Entries
 
+### La pieza estructural que falta en la skill: un target tiene DOS superficies
+
+Esto es lo que ordena todos los hallazgos de abajo, y es un cambio de forma en
+`surface-recon`, no una regla más.
+
+**Hoy la skill hace clasificar un target en UN terreno.** Terrain B (SPA con API
+interna) o Terrain C (portal con login), y seguís ese playbook. Este target es
+los dos a la vez, y esa es la situación normal y no la excepción:
+
+| | superficie | terreno | qué expone |
+|---|---|---|---|
+| **anónima** | lectura | B | 10 endpoints JSON, un header, sin rate limit |
+| **autenticada** | compra | C | asientos, reserva, pago |
+
+El reporte quedó escrito como si el target fuera solo B, con el checkout
+"inalcanzable". La verdad es que la superficie B está completa **y hay una
+segunda superficie detrás de un login que ni siquiera intenté**. Me enteré al
+final, por un screenshot de Hunter.
+
+Lo que cambia si la skill modela esto:
+
+1. **Phase 0 clasifica por superficie, no por target.** "Terrain B para lectura,
+   C para compra" es una salida válida y más honesta que elegir uno.
+2. **Detectar la frontera de auth es un objetivo explícito de la Phase 2**, no
+   algo que aparece si tenés suerte. La pregunta "¿qué se desbloquea con una
+   cuenta?" hay que hacérsela siempre, aunque no tengas cuenta. La respuesta
+   "hay un login en el paso N del flujo X" ya es un hallazgo entregable.
+3. **El veredicto se parte en dos.** "Build it narrowly" describe mal esto. Lo
+   correcto acá era: *build ahora la superficie anónima; la autenticada está
+   mapeada hasta la puerta y necesita una cuenta y tu autorización*.
+4. **El reporte debe decir qué NO se intentó y por qué.** El mío no tenía esa
+   sección, y por eso "no encontré el checkout" se leía como "no existe" en vez
+   de "no crucé una puerta que vi".
+
+Para el CLI construido encima, la consecuencia práctica es la que Hunter nombró:
+el CLI anónimo es legítimo y completo, y si algún día se agrega la superficie
+autenticada, **son dos modos con contratos distintos** (uno sin credenciales y
+otro con), no un CLI con más comandos. Un aviso en el `--help` del tipo "esto
+cubre lo público; comprar requiere cuenta" es más honesto que el silencio
+actual, que deja creer que el CLI cubre todo lo que el servicio hace.
+
+### Ronda 2: buscando el mapa de asientos (8 intentos, ninguno llegó)
+
+Detalle completo en [seat-map-attempts.md](seat-map-attempts.md). Lo que va acá
+son las reglas agnósticas que salieron, candidatas a la skill.
+
+- [surface-recon] **Un screenshot habría cerrado esto en el intento 1 en lugar
+  del 8.** Después de descubrir el login, saqué una captura del mismo flujo: el
+  panel se ve entero, con sus campos y sus botones, de un vistazo. Costo: un
+  comando. Yo había gastado ocho intentos hookeando red, grepeando bundles y
+  caminando fibers, todas herramientas que miran *representaciones* del estado
+  mientras la pantalla mostraba la respuesta en texto grande.
+  **Regla propuesta:** cuando una interacción no produce el efecto esperado,
+  **screenshot antes que network tab**. Es la única herramienta que no depende
+  de saber qué estás buscando: el grep necesita el nombre correcto, el hook de
+  red necesita que haya tráfico, el fiber necesita saber qué prop mirar. La
+  imagen no necesita hipótesis previa. Es literalmente el consejo que la skill
+  `signature-repro` da para bugs visuales ("capturá y MIRÁ con tus propios
+  ojos"), y que no está en `surface-recon`.
+- [agent-browser] **`react tree` sin `--json` imprime "Done" y nada más.** Con
+  `--json` devuelve el árbol completo (211 KB acá). El modo humano está roto y
+  el fallo se parece a "esta página no tiene React", que fue exactamente lo que
+  concluí en la primera ronda cuando lo anoté como que "devolvió vacío". Dos
+  rondas creyendo que la herramienta no aplicaba a este target.
+  Vale reportarlo upstream: un comando que falla devolviendo éxito silencioso es
+  peor que uno que errorea.
+- [surface-recon] **REGLA DURA propuesta, no sugerencia: si el target es React o
+  Next.js, `react tree` es obligatorio y va ANTES de tocar el bundle.** Cómo se
+  detecta el target en un comando: `x-powered-by: Next.js` en los headers, un
+  `#__next` o `__NEXT_DATA__` en el HTML, o `/_next/static/` en los assets. Si
+  eso da positivo, el primer movimiento es:
+  ```bash
+  agent-browser open <url> --enable react-devtools
+  agent-browser react tree --json
+  ```
+  Es el equivalente para React de lo que la skill ya dice para Electron
+  ("conectate al puerto de debug en vez de desempacar el asar"): existe una vía
+  de introspección de primera clase y usar grep sobre el bundle minificado en su
+  lugar es trabajar a ciegas por elección.
+  El `--enable react-devtools` **hay que pasarlo al abrir**; no se puede activar
+  después, y omitirlo hace que los comandos `react` devuelvan vacío, que es
+  indistinguible de "esta app no usa React".
+- [surface-recon] **Para una SPA de React, `react tree` es más barato que todo
+  lo que hice y ninguna referencia lo pone primero.** Con
+  `open --enable react-devtools` y `react tree --json`, el árbol trae los `key`
+  que los desarrolladores escribieron a mano, que son nombres de dominio y no
+  identificadores minificados. En este target aparecen literalmente:
+  ```
+  key="Login:button"
+  key="sessions-group-2D - SUBTITULADA"
+  key="Horarios"
+  ```
+  `key="Login:button"` en el árbol **es** la respuesta a "¿por qué se corta el
+  flujo?", disponible sin haber cliqueado nada. Y `react inspect <id> --json`
+  devuelve props, hooks, state **y el archivo fuente con línea**, que es el
+  puente directo del componente al bundle.
+  Phase 3 menciona `react tree` en una lista de técnicas para "cuando el tráfico
+  no alcanza". Para Terrain B con React debería ser de los primeros movimientos,
+  no un recurso tardío: los `key` de dominio sobreviven a la minificación
+  justamente porque son strings escritos por humanos.
+- [gate] **EL HALLAZGO MÁS IMPORTANTE DE TODA LA SESIÓN, y es un gate que
+  falta.** Concluí por escrito que el flujo de compra "no producía nada" después
+  de ocho intentos. Hunter cliqueó a mano y le apareció **un panel de login**.
+  El flujo existía: chip, "Comprar entradas", correo y contraseña. Lo que
+  faltaba no era un endpoint sino una cuenta.
+  Tres errores encadenados, todos evitables:
+  1. Confundí *"mi automatización no lo logra"* con *"no existe"*. Los ocho
+     intentos eran correctos; la inferencia no.
+  2. **Busqué el resultado y nunca miré el obstáculo.** Buscaba un endpoint de
+     asientos, así que miraba tráfico de red y grepeaba el DOM por selectores
+     con "seat". Un panel de login no genera tráfico y no contiene esa palabra:
+     era invisible para todo lo que yo estaba mirando. Nunca leí lo que la
+     página decía.
+  3. **Tenía las dos piezas escritas y no las conecté.** Mi propio reporte lista
+     `/api/auth/providers` entre los endpoints observados y anota el feature
+     flag `BuyAsGuest: false`. Esas dos líneas explicaban todo, y busqué ocho
+     caminos alternativos igual.
+  **Gate propuesto, para "Antes de concluir que algo no existe":** cuando una
+  acción de UI no produce el efecto esperado, **leé la pantalla antes de mirar
+  la red**. Un `innerText` del body cuesta un comando y detecta las tres razones
+  más comunes de que un flujo se corte: un login, un consentimiento, o un error
+  visible. Todas invisibles para el network tab y para un grep por el nombre del
+  recurso que buscás.
+  **Segundo gate, más general:** un veredicto negativo tiene que declarar
+  explícitamente qué precondiciones se cumplieron. "No hay endpoint de asientos"
+  es incompleto; "no hay endpoint de asientos alcanzable **sin cuenta**" es la
+  afirmación que la evidencia sostenía, y sale sola si el gate te obliga a
+  nombrar las precondiciones.
+- [surface-recon] **Un código de error inusual no es una pista hasta que
+  probaste que un valor absurdo no lo produce igual.** Perseguí un 502 (en vez
+  del 404 esperado) creyendo que significaba "el gateway conoce esta ruta y el
+  backend no responde". Un control con `/zzz` devolvió el mismo 502: era la
+  respuesta genérica para cualquier ruta desconocida. La regla en una línea:
+  antes de invertir en una hipótesis basada en un código de respuesta, pediー
+  una ruta imposible y comparé. Cuesta un comando y desarma la hipótesis falsa
+  más común del recon.
+- [surface-recon] **Un cliente existente para el mismo software base es la mejor
+  fuente de hipótesis, y no es evidencia sobre este target.** Un CLI de otra
+  cadena sobre el mismo motor de ticketing me dio los paths exactos
+  (`/ocapi/v1/showtimes/{id}/seat-layout`). Todos 404 acá. Mismo software,
+  decisión de despliegue distinta: una instalación reexpone la API del proveedor
+  y la otra la tapa con una capa propia. Vale como playbook: buscá un cliente
+  conocido del mismo motor para saber **qué** buscar, pero cada endpoint sigue
+  necesitando su propia verificación.
+- [surface-recon] **Diferencia de sets de chunks para ubicar el código de una
+  ruta.** Comparar el listado de bundles de la ruta que te interesa contra el de
+  una ruta que ya entendés aísla los chunks exclusivos. Acá redujo 42 chunks a
+  1. Es una técnica de recon que ninguna referencia menciona y que cuesta dos
+  `grep` y un `comm`. (En este caso el chunk resultó ser un loader `next/dynamic`,
+  pero eso también es información: dice que el código real no se descarga hasta
+  llegar al flujo.)
+- [surface-recon] **Leer el estado interno del framework antes de deobfuscar.**
+  Recorriendo el fiber de React desde un elemento visible aparecieron las props
+  del componente (`sessions`, `onSelectSession`) con el objeto de dominio
+  completo, ya parseado. Phase 3 menciona `react tree` y `eval` de globals, pero
+  no este movimiento concreto: **caminar el fiber hacia arriba desde un nodo que
+  podés ubicar por su texto**. Es más barato que grepear un bundle minificado y
+  devuelve datos tipados en vez de strings.
+- [surface-recon] **La prueba que cierra un "no se puede": llamar al handler
+  interno con todas las salidas hookeadas.** Mientras solo cliqueás la UI, un
+  resultado negativo es ambiguo (¿cliqueé mal? ¿faltaba un paso?). El
+  experimento concluyente es obtener el handler del framework, llamarlo con el
+  argumento correcto, y tener hookeados `fetch`, `XMLHttpRequest.open`,
+  `window.open`, `history.pushState` y `history.replaceState`. Si no sale nada
+  por ninguna de las cinco, el corte es del proveedor y no tuyo. **Sugerencia
+  para gates.md**: hoy los gates cubren "no afirmes que existe sin verlo"; falta
+  el simétrico, "no afirmes que no existe sin haber ejercitado el camino
+  interno". Un veredicto negativo también necesita su prueba.
+- [surface-recon] **La instrumentación de terceros del propio target es
+  evidencia sobre su arquitectura.** El tag de Google Ads del sitio lleva
+  `trigger;navigation-source, not-event-source`, o sea la propia cadena declara
+  que esa conversión se cuenta por navegación. Eso convierte "el clic no hace
+  nada" en "el clic debería navegar y algo lo impide", que es un diagnóstico
+  distinto y mucho más preciso. Los parámetros de analytics están en texto plano
+  en el HAR y nadie los mira: describen el flujo que el equipo del sitio cree
+  tener, y cuando no coincide con lo que observás, la brecha es el hallazgo.
+- [surface-recon] **Un veredicto negativo bien documentado es un entregable.**
+  Ocho intentos con su criterio de descarte cierran la pregunta para el próximo
+  que la agarre. Sin eso, "no encontré el mapa de asientos" invita a que alguien
+  repita los mismos ocho caminos. La skill valora el reporte de lo que existe;
+  debería valorar igual el registro de lo que se probó y falló, con el costo de
+  cada intento.
+
 - [gate] The domain gate fired at Phase 1, before any browser work, and it was
   cheap. The target as briefed (`cinemarkhoyts.com.ar`) 301s to
   `cinemark.com.ar`. A `curl -L` writing `%{url_effective}` caught it in one
