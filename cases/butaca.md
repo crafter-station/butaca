@@ -58,13 +58,17 @@ Three things the recon caught that a build-first approach would have paid for:
    emit conversion beacons to three ad networks, including a Google Ads
    `bttype=purchase`.
 
-So the honest position was "the hold step is unmapped", not "unimplemented". The
-verdict was **build it narrowly, read half only**, and the user chose that path
-over waiting for a manual checkout capture.
+The verdict held at **build it narrowly, read half only** through all three
+readings, which is the part worth being uneasy about rather than pleased with.
+A conclusion that survives two corrections to its premise was not resting on
+that premise. For two rounds it was right by accident.
 
-**The scope cut in the brief was drawn one step too optimistically.** That is the
-recon earning its cost: the wrong version of this project ships a `hold` command
-built against a guessed endpoint.
+**The scope cut in the brief was drawn one step too optimistically.** That is
+the recon earning its cost either way: the wrong version of this project ships
+a `hold` command built against a guessed endpoint. But the reason to stop is
+now "the hold takes real inventory in someone's system", not "there is nothing
+there to call", and only the second one would have survived contact with the
+account.
 
 ## Distribution choice
 

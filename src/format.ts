@@ -1,5 +1,5 @@
 import { ApiError, nowIso, source } from "./api.js";
-import { anchoVisible, bold, dim, padVisible } from "./style.js";
+import { anchoVisible, bold, dim, padVisible, red } from "./style.js";
 import type { Envelope, EnvelopeMeta } from "./types.js";
 
 export interface Flags {
@@ -70,8 +70,10 @@ export function reportError(machineMode: boolean, error: ApiError): number {
     // el agente pierde el code y el hint que existen para que se recupere.
     process.stdout.write(`${JSON.stringify(envelope, null, 2)}\n`);
   } else {
-    process.stderr.write(`Error: ${error.message}\n`);
-    process.stderr.write(`  ${error.hint}\n`);
+    // El rojo marca el estado, el code lo nombra para que se pueda buscar, y
+    // el hint va en dim porque es la salida, no el problema.
+    process.stderr.write(`${red("Error")} ${dim(`[${error.code}]`)} ${error.message}\n`);
+    process.stderr.write(`  ${dim(error.hint)}\n`);
   }
   return exitCodeFor(envelope);
 }

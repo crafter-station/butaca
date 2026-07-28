@@ -13,7 +13,7 @@ import {
 import { loadConfig } from "../config.js";
 import { ok, printEnvelope, reportError } from "../format.js";
 import type { Flags } from "../format.js";
-import { bold, dim, green, red } from "../style.js";
+import { bold, dim, green } from "../style.js";
 
 export interface AuthLoginOptions {
   email: string | null;
@@ -121,6 +121,6 @@ export function runAuthLogout(machineMode: boolean): number {
     return 0;
   }
 
-  process.stdout.write(`${red("✓")} Sesión y credenciales borradas.\n`);
+  process.stdout.write(`${green("✓")} Sesión y credenciales borradas.\n`);
   return 0;
 }

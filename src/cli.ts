@@ -14,7 +14,7 @@ import { fetchTheaters } from "./api.js";
 import { printBanner } from "./foundation/banner.js";
 import { ok, printEnvelope, resolveMachineMode, reportError } from "./format.js";
 import type { Flags } from "./format.js";
-import { blue, bold, dim, italic, padVisible, underline } from "./style.js";
+import { blue, bold, dim, italic, padVisible, red, underline } from "./style.js";
 
 const VERSION = "0.1.0";
 
@@ -115,7 +115,7 @@ async function main(): Promise<number> {
     args = parseArgs(argv);
   } catch (err) {
     const message = err instanceof ArgParseError ? err.message : String(err);
-    process.stderr.write(`Error: ${message}\n`);
+    process.stderr.write(`${red("Error")} ${message}\n`);
     return 1;
   }
 
@@ -180,8 +180,8 @@ async function main(): Promise<number> {
       }
     }
     process.stderr.write(
-      `Error: comando desconocido "${command}"\n` +
-        `Comandos válidos: ${knownCommands().join(", ")}, o un slug de cine.\n`,
+      `${red("Error")} comando desconocido ${bold(`"${command}"`)}\n` +
+        `  ${dim(`Comandos válidos: ${knownCommands().join(", ")}, o un slug de cine.`)}\n`,
     );
     return 1;
   }
@@ -310,6 +310,6 @@ main()
   })
   .catch((err) => {
     const message = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`Error inesperado: ${message}\n`);
+    process.stderr.write(`${red("Error inesperado")} ${message}\n`);
     process.exitCode = 2;
   });
