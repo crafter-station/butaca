@@ -31,7 +31,8 @@ butaca butacas <sessionId>             dibuja el mapa de asientos
        [--dry-run]                     no abre orden, explica qué haría
 
 butaca reservar <sessionId>            hold real de butacas
-       --asientos F12,F13
+       --asientos 7-12,7-13
+       [--asignada]                    la butaca que Cinemark preasigna
        [--dry-run]                     valida sin reservar
        [--yes]                         saltea la confirmación
 ```

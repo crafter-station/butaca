@@ -19,6 +19,7 @@ export interface ParsedArgs {
   idioma: string | null;
   libres: number | null;
   asientos: string[] | null;
+  asignada: boolean;
   email: string | null;
   password: string | null;
 }
@@ -73,6 +74,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     idioma: null,
     libres: null,
     asientos: null,
+    asignada: false,
     email: null,
     password: null,
   };
@@ -132,6 +134,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
     if (token === "--yes") {
       result.yes = true;
+      i += 1;
+      continue;
+    }
+    if (token === "--asignada") {
+      result.asignada = true;
       i += 1;
       continue;
     }

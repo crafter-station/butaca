@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { ApiError } from "../src/api.js";
-import { buildTicketList, resolveSeats, toHoldSeatEntries } from "../src/commands/reservar.js";
+import { buildTicketList, resolveSeats, toHoldSeatEntries, etiquetasPedidas } from "../src/commands/reservar.js";
 import { parseSeatMap, renderSeatMap } from "../src/seat-map.js";
 import type { PriceCategory, RawSeatMapResponse } from "../src/api-auth.js";
 import fixture from "./fixtures/seat-map.json" with { type: "json" };
@@ -129,5 +129,45 @@ describe("buildTicketList (copia de reservar.ts): mismo shape real de get-prices
 
   it("falla con ORDER_FAILED si get-prices no trae categorías", () => {
     expect(() => buildTicketList([])).toThrow(ApiError);
+  });
+});
+
+describe("etiquetasPedidas: --asignada", () => {
+  const mapa = {
+    areas: [
+      {
+        code: "0000000001",
+        number: "1",
+        seats: [
+          { row: "14", number: "8", gridRow: "2", gridNumber: "1", status: "AUTO_ASIGNADA", statusId: 5 },
+          { row: "2", number: "30", gridRow: "3", gridNumber: "2", status: "DISPONIBLE", statusId: 0 },
+        ],
+      },
+    ],
+    summary: { total: 2, available: 1, accessible: 0, broken: 0 },
+    screen: { rows: 2, columns: 2 },
+  } as unknown as Parameters<typeof etiquetasPedidas>[1];
+
+  it("resuelve la preasignada de la orden en curso", () => {
+    expect(etiquetasPedidas({ asientos: [], asignada: true }, mapa)).toEqual(["14-8"]);
+  });
+
+  it("sin el flag devuelve lo que pidió el usuario", () => {
+    expect(etiquetasPedidas({ asientos: ["2-30"], asignada: false }, mapa)).toEqual(["2-30"]);
+  });
+
+  it("falla con hint si la orden no trajo preasignada", () => {
+    const sinAuto = { ...mapa, areas: [{ ...mapa.areas[0], seats: [mapa.areas[0].seats[1]] }] } as typeof mapa;
+    expect(() => etiquetasPedidas({ asientos: [], asignada: true }, sinAuto)).toThrow(/no preasignó/);
+  });
+
+  // La preasignada no es reservable pidiéndola por número: el que ve el usuario
+  // pertenece a la orden que dibujó el mapa. Dentro de la orden que abre
+  // `reservar` sí lo es, y --asignada es el único camino que la resuelve desde
+  // adentro, así que es el único que la deja pasar.
+  it("solo con permitirAsignada pasa el estado 5", () => {
+    const areas = mapa.areas;
+    expect(() => resolveSeats(["14-8"], areas)).toThrow(/no está disponible/);
+    expect(resolveSeats(["14-8"], areas, true).map((r) => r.label)).toEqual(["14-8"]);
   });
 });

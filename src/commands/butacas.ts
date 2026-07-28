@@ -268,7 +268,8 @@ export async function runButacas(options: ButacasOptions, flags: Flags, machineM
       // no tiene selección, se pide lo que se quiere. Decirlo evita la
       // contradicción aparente.
       process.stdout.write(
-        `\n${dim("Ninguna está elegida todavía. Ejemplo con una libre:")}\n${dim(reservarSugerido(options.sessionId, options.cine, seatMap))}\n`,
+        `\n${dim("Ninguna está elegida todavía. Ejemplo con una libre:")}\n${dim(reservarSugerido(options.sessionId, options.cine, seatMap))}\n` +
+          `${dim(`O quedate con la ámbar: butaca reservar ${options.sessionId} --cine ${options.cine} --asignada`)}\n`,
       );
     }
 

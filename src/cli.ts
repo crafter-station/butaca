@@ -53,7 +53,8 @@ ${uso("butaca auth logout", "", "borra sesión y credenciales")}
 ${uso("butaca butacas", "<sessionId> --cine <slug>", "dibuja el mapa de asientos")}
 ${uso("", "[--dry-run]", "no abre orden, explica qué haría")}
 ${uso("butaca reservar", "<sessionId> --cine <slug>", "hold real de butacas")}
-${uso("", "--asientos F12,F13 [--dry-run] [--yes]")}
+${uso("", "--asientos 7-12,7-13 [--dry-run] [--yes]")}
+${uso("", "--asignada  la butaca que Cinemark preasigna a la orden")}
 
 ${bold(underline("Opciones"))}
 ${opcion("--json", "fuerza salida JSON aunque haya TTY")}
@@ -279,7 +280,7 @@ async function main(): Promise<number> {
           new ApiError(
             "BAD_INPUT",
             "reservar necesita un sessionId",
-            "Ejemplo: butaca reservar 159037 --cine palermo --asientos F12",
+            "Ejemplo: butaca reservar 159037 --cine palermo --asientos 7-12",
           ),
         );
       }
@@ -288,6 +289,7 @@ async function main(): Promise<number> {
           sessionId,
           cine: args.cine,
           asientos: args.asientos ?? [],
+          asignada: args.asignada,
           dryRun: args.dryRun,
           yes: args.yes,
         },

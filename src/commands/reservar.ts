@@ -8,13 +8,14 @@ import { currentSession } from "../auth.js";
 import { ok, printEnvelope, reportError } from "../format.js";
 import type { Flags } from "../format.js";
 import { findSeatByLabel, isAvailableStatus, parseSeatLabel, parseSeatMap } from "../seat-map.js";
-import type { Seat } from "../seat-map.js";
+import type { Seat, SeatMap } from "../seat-map.js";
 import { amber, bold, dim, green } from "../style.js";
 
 export interface ReservarOptions {
   sessionId: string;
   cine: string | null;
   asientos: string[];
+  asignada: boolean;
   dryRun: boolean;
   yes: boolean;
 }
@@ -93,7 +94,16 @@ export function previewReserva(seats: ResolvedSeat[], sessionId: string): string
   return [titulo, ...filas].join("\n");
 }
 
-export function resolveSeats(labels: string[], areas: ReturnType<typeof parseSeatMap>["areas"]): ResolvedSeat[] {
+export function resolveSeats(
+  labels: string[],
+  areas: ReturnType<typeof parseSeatMap>["areas"],
+  // La preasignada (estado 5) no es reservable pidiéndola por número, porque el
+  // número que ve el usuario es de otra orden. Pero dentro de la orden que este
+  // comando abre sí lo es: verificado con order-set-seats devolviendo Code 0
+  // sobre la butaca preasignada de esa misma orden. --asignada es el único
+  // camino que la resuelve desde adentro, así que es el único que la permite.
+  permitirAsignada = false,
+): ResolvedSeat[] {
   const seatMap = { areas, summary: { total: 0, available: 0, accessible: 0, broken: 0 }, screen: { rows: 0, columns: 0 } };
   const resolved: ResolvedSeat[] = [];
   const problems: string[] = [];
@@ -109,7 +119,7 @@ export function resolveSeats(labels: string[], areas: ReturnType<typeof parseSea
       problems.push(`"${label}" no existe en el mapa de esta función`);
       continue;
     }
-    if (!isAvailableStatus(seat.statusId)) {
+    if (!isAvailableStatus(seat.statusId) && !(permitirAsignada && seat.statusId === 5)) {
       problems.push(`"${label}" no está disponible (estado: ${seat.status})`);
       continue;
     }
@@ -146,12 +156,42 @@ export function toHoldSeatEntries(
   }));
 }
 
+/**
+ * Con --asignada se toma la butaca que Cinemark preasignó a ESTA orden. No se
+ * puede pasar por --asientos porque el número cambia en cada orden: la que
+ * muestra `butaca butacas` pertenece a la orden que ese comando abrió, y muere
+ * con ella. Resolverla acá adentro es la única forma de pedirla, porque el
+ * mapa que se lee ya es el de la orden que este comando abrió.
+ */
+export function etiquetasPedidas(
+  options: Pick<ReservarOptions, "asientos" | "asignada">,
+  seatMap: SeatMap,
+): string[] {
+  if (!options.asignada) return options.asientos;
+  const asignadas = seatMap.areas
+    .flatMap((a) => a.seats)
+    .filter((s) => s.statusId === 5)
+    .map((s) => `${s.row}-${s.number}`);
+  if (asignadas.length === 0) {
+    throw new ApiError(
+      "SEATS_UNAVAILABLE",
+      "Cinemark no preasignó ninguna butaca a esta orden",
+      "Elegí una a mano: corré `butaca butacas` y pasá --asientos.",
+    );
+  }
+  return [...asignadas, ...options.asientos];
+}
+
 export async function runReservar(options: ReservarOptions, flags: Flags, machineMode: boolean): Promise<number> {
   try {
-    if (options.asientos.length === 0) {
+    if (options.asientos.length === 0 && !options.asignada) {
       return reportError(
         machineMode,
-        new ApiError("BAD_INPUT", "reservar necesita --asientos F12,F13", "Ejemplo: butaca reservar 159037 --asientos F12"),
+        new ApiError(
+          "BAD_INPUT",
+          "reservar necesita --asientos 7-12 o --asignada",
+          "Ejemplo: butaca reservar 159037 --cine palermo --asientos 7-12",
+        ),
       );
     }
 
@@ -220,7 +260,8 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
       );
       const rawMap = await fetchSeatMap(cinemaId, opened.transIdTemp, options.sessionId, session.session.memberSessionId);
       const seatMap = parseSeatMap(rawMap);
-      const resolved = resolveSeats(options.asientos, seatMap.areas);
+      const pedidos = etiquetasPedidas(options, seatMap);
+      const resolved = resolveSeats(pedidos, seatMap.areas, options.asignada);
       auditResolve(auditId, "order.dry-run", commandStr, "ok", {
         transIdTemp: opened.transIdTemp,
         validated: resolved.map((r) => r.label),
@@ -254,7 +295,8 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
 
       const rawMap = await fetchSeatMap(cinemaId, transIdTemp, options.sessionId, session.session.memberSessionId);
       const seatMap = parseSeatMap(rawMap);
-      const resolved = resolveSeats(options.asientos, seatMap.areas);
+      const pedidos = etiquetasPedidas(options, seatMap);
+      const resolved = resolveSeats(pedidos, seatMap.areas, options.asignada);
       const firstArea = seatMap.areas[0];
       if (!firstArea) {
         throw new ApiError("ORDER_FAILED", "El mapa de asientos no trajo ninguna área", "Reportá este error si persiste.");

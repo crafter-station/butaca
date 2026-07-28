@@ -5,6 +5,39 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 20 (2026-07-28, la asignada sí era reservable)
+
+- [cli-build] **Casi respondo "no se puede" sin probarlo.** Hunter preguntó cómo
+  quedarse con la butaca ámbar. Mi modelo era claro: pertenece a una orden que
+  muere, y pedirla por número devuelve `NO_DISPONIBLE`, lo cual **verifiqué**.
+  Pero eso prueba que no se puede pedir **desde afuera**, no que no se pueda.
+  `order-set-seats` recibe el `transIdTemp` en el payload, así que la pregunta
+  real era si dentro de **su propia** orden la acepta. Probado con curl: `Code 0`,
+  la reserva. **Sí se podía.**
+  **Regla:** "lo verifiqué y falla" solo cubre el camino que probaste. Antes de
+  cerrar una capacidad como imposible, enumerar los caminos que la API permite,
+  no solo el que el CLI usa hoy. Un endpoint que recibe el id de la transacción
+  está diciendo que se puede operar dentro de una transacción existente.
+- [cli-build] **Mi primer curl falló y casi lo leo como respuesta.** El primer
+  intento devolvió `error_order_seat_seats` sobre la asignada, y estuve a un
+  paso de anotarlo como confirmación de que no se podía. Lo salvó probar también
+  con una butaca **libre**: falló idéntico, o sea el error era mío (faltaban
+  `areaCatCode` y `areaNumber`). **Un experimento que falla necesita un control
+  que debería pasar**, si no se confunde "el sistema no lo permite" con "mi
+  request está mal".
+- [cli-build] **`--asignada` no puede ser un valor de `--asientos`.** El número
+  cambia por orden, así que ninguna etiqueta escrita por el usuario puede
+  nombrarla: para cuando la tipea, ya es de otra orden. Se resuelve **adentro**,
+  contra el mapa que `reservar` ya lee de su propia orden. Es un caso donde el
+  flag no es azúcar sintáctico de otro flag: es el único camino posible.
+  El validador sigue rechazando el estado 5 pedido a mano (verificado), y lo
+  acepta solo por este camino.
+- [cli-build] **El `--help` documentaba un formato que esta cadena no usa.**
+  Decía `--asientos F12,F13`, herencia del contrato inicial escrito antes de
+  saber que Cinemark numera las filas. Un usuario que copiaba el ejemplo del help
+  recibía "no tiene el formato fila+número". Corregido a `7-12,7-13` en el help y
+  en el hint del error.
+
 ### Ronda 19 (2026-07-28, la leyenda prometía algo falso)
 
 - [cli-build] **Arreglé el comando y dejé la pantalla contradiciéndose.** En la

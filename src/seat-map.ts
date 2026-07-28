@@ -341,7 +341,7 @@ function legendLine(useColor: boolean, presentes: number[], numerada = false): s
     // el mapa, y esa orden muere en cuanto corrés `reservar`, que abre otra. Al
     // usuario le quedaba una pantalla irreconciliable: el ámbar decía una butaca
     // y el comando sugerido otra, sin nada que explicara la diferencia.
-    5: "tomada por otra orden",
+    5: "preasignada (--asignada la toma)",
     6: "fuera de servicio",
     7: "fuera de servicio",
     8: "bloqueada",

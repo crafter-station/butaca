@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 19 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 20 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -9,7 +9,7 @@ originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 ## Antes de tocar nada
 
 ```bash
-bun test          # 178 tests, sin red
+bun test          # 182 tests, sin red
 npx tsc --noEmit  # src
 npx tsc --noEmit -p tsconfig.test.json
 npx biome check --write .
@@ -126,6 +126,18 @@ a esa transacción.
 
 Chequear cuesta pedir el mismo recurso dos veces. Si el recon clasifica un valor
 volátil junto a los estables, el cliente lo trata como fijo.
+
+### 9b. "Lo probé y falla" solo cubre el camino que probaste
+
+Casi cierro como imposible reservar la butaca preasignada: pedirla por número
+devuelve NO_DISPONIBLE, y lo verifiqué. Pero eso probaba que no se puede desde
+afuera. `order-set-seats` recibe el `transIdTemp`, así que dentro de su propia
+orden sí la acepta (Code 0). Antes de declarar algo imposible, enumerá los
+caminos que la API permite, no solo el que el CLI usa hoy.
+
+Corolario: **un experimento que falla necesita un control que debería pasar.** Mi
+primer curl falló sobre la asignada y casi lo leo como confirmación; probarlo
+con una butaca libre mostró que fallaba igual, o sea el error era del payload.
 
 ### 10. Antes de afirmar un número, correr el comando que lo prueba
 

@@ -283,6 +283,8 @@ describe("leyenda del estado 5 (regresión)", () => {
     const seatMap = parseSeatMap(fixture as unknown as RawSeatMapResponse);
     const drawing = renderSeatMap(seatMap, { color: false });
     expect(drawing).not.toContain("te asignaron");
-    expect(drawing).toContain("otra orden");
+    // Nombra el flag que la toma: es el único camino que la reserva, porque el
+    // número que se ve pertenece a la orden que dibujó este mapa.
+    expect(drawing).toContain("--asignada");
   });
 });
