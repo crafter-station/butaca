@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { anchoVisible, barraOcupacion, bold, ocupacionDe, padVisible } from "../src/style.js";
+import { anchoVisible, barraOcupacion, bold, errAmber, errRed, ocupacionDe, padVisible } from "../src/style.js";
 
 // Los tests corren sin TTY, donde shouldColor() da false y las funciones de
 // estilo devuelven el texto crudo. Para probar el alineado con ANSI presente
@@ -93,5 +93,40 @@ describe("barraOcupacion", () => {
     for (const libres of [0, 60, 125, 200, 250]) {
       expect(anchoVisible(barraOcupacion(libres, 250, 10))).toBe(10);
     }
+  });
+});
+
+describe("color de diagnósticos (regresión)", () => {
+  // Los errores van a stderr y shouldColor() miraba stdout, así que
+  // `butaca ... | jq` dejaba los errores en gris plano justo cuando el humano
+  // los está leyendo en su terminal. Los helpers err* deciden por stderr.
+  const conEntorno = (env: Record<string, string | undefined>, fn: () => void) => {
+    const previo = { ...process.env };
+    Object.assign(process.env, env);
+    for (const [k, v] of Object.entries(env)) if (v === undefined) delete process.env[k];
+    try {
+      fn();
+    } finally {
+      process.env = previo;
+    }
+  };
+
+  it("FORCE_COLOR enciende el rojo de error", () => {
+    conEntorno({ FORCE_COLOR: "1", NO_COLOR: undefined }, () => {
+      expect(errRed("Error")).toContain("38;5;203");
+    });
+  });
+
+  it("NO_COLOR lo apaga aunque haya TTY", () => {
+    conEntorno({ NO_COLOR: "1", FORCE_COLOR: undefined }, () => {
+      expect(errRed("Error")).toBe("Error");
+      expect(errAmber("Aviso")).toBe("Aviso");
+    });
+  });
+
+  it("NO_COLOR gana sobre FORCE_COLOR", () => {
+    conEntorno({ NO_COLOR: "1", FORCE_COLOR: "1" }, () => {
+      expect(errRed("Error")).toBe("Error");
+    });
   });
 });

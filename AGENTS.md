@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 22 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 23 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -9,7 +9,7 @@ originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 ## Antes de tocar nada
 
 ```bash
-bun test          # 185 tests, sin red
+bun test          # 188 tests, sin red
 npx tsc --noEmit  # src
 npx tsc --noEmit -p tsconfig.test.json
 npx biome check --write .
@@ -53,6 +53,17 @@ humana no.
 
 `--json` es modo de salida. Si alguna vez hace falta JSON de entrada, va con
 otro nombre de flag.
+
+### 3b. La detección de TTY es por stream, y el dist puede mentirte
+
+`shouldColor()` miraba `stdout.isTTY` para texto que va a stderr, así que
+`butaca ... | jq` dejaba los errores en gris. Datos a stdout, diagnósticos a
+stderr, y **cada stream decide su propio color**. Una advertencia es un
+diagnóstico: también va a stderr.
+
+Y al diagnosticar: si el comportamiento contradice el fuente en un detalle que el
+fuente no puede producir, sospechá del artefacto. El `dist/` versionado se
+desincroniza en silencio.
 
 ### 4. Un comando que enumera capacidades se testea contra la lista real
 

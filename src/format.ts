@@ -1,5 +1,5 @@
 import { ApiError, nowIso, source } from "./api.js";
-import { anchoVisible, bold, dim, padVisible, red } from "./style.js";
+import { anchoVisible, bold, dim, errDim, errRed, padVisible, red } from "./style.js";
 import type { Envelope, EnvelopeMeta } from "./types.js";
 
 export interface Flags {
@@ -72,8 +72,8 @@ export function reportError(machineMode: boolean, error: ApiError): number {
   } else {
     // El rojo marca el estado, el code lo nombra para que se pueda buscar, y
     // el hint va en dim porque es la salida, no el problema.
-    process.stderr.write(`${red("Error")} ${dim(`[${error.code}]`)} ${error.message}\n`);
-    process.stderr.write(`  ${dim(error.hint)}\n`);
+    process.stderr.write(`${errRed("Error")} ${errDim(`[${error.code}]`)} ${error.message}\n`);
+    process.stderr.write(`  ${errDim(error.hint)}\n`);
   }
   return exitCodeFor(envelope);
 }

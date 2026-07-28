@@ -341,6 +341,21 @@ codificaba la saturación como comportamiento deseado. Un test escrito desde la
 implementación en vez de desde la pregunta del lector ("¿cuál está más llena?")
 no falla cuando la implementación está mal.
 
+## 19. La detección de TTY es por stream
+
+`shouldColor()` miraba `stdout.isTTY` y se usaba también para el texto que va a
+stderr. Resultado: en `cmd | jq`, el caso más común de todos, stdout es un pipe
+y los errores salían en gris plano **justo cuando el humano los está leyendo en
+su terminal**.
+
+Un CLI que escribe en los dos streams necesita las dos preguntas. Usar una sola
+apaga el color exactamente en el escenario para el que existe: datos a un pipe,
+diagnósticos a la vista.
+
+Y la categoría es más ancha que "errores": una advertencia también es un
+diagnóstico. La nuestra iba a stdout, así que `cmd > archivo.txt` metía el aviso
+dentro del archivo.
+
 ## Rastrillos técnicos
 
 Tres cosas que rompen apenas agregás estilo a algo que antes era plano:

@@ -5,6 +5,34 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 23 (2026-07-28, los errores sin color, y el dist stale)
+
+- [cli-build] **`shouldColor()` preguntaba por el stream equivocado.** Miraba
+  `process.stdout.isTTY` para decidir el color de texto que va a **stderr**. O
+  sea en `butaca ... | jq`, el caso más común de todos, stdout es un pipe y los
+  errores salían en gris plano justo cuando el humano los está leyendo en su
+  terminal. Agregado `shouldColorStderr()` y helpers `err*` que deciden por
+  `stderr.isTTY`. `NO_COLOR` y `FORCE_COLOR` siguen ganando en ambos.
+  **Regla:** la detección de TTY es por stream, no global. Un CLI que escribe en
+  los dos necesita las dos preguntas, y usar una sola apaga el color exactamente
+  en el escenario para el que existe: datos a un pipe, diagnósticos a la vista.
+- [cli-build] **El `Aviso` de `butacas` iba a stdout.** Es un diagnóstico, no el
+  dato pedido, así que `butaca butacas ... > mapa.txt` metía una advertencia
+  dentro del archivo. Movido a stderr. La skill dice "datos a stdout,
+  diagnósticos a stderr" y yo lo había respetado para los errores y no para las
+  advertencias, que son la misma categoría.
+- [cli-build] **El `dist/` commiteado estaba viejo y me mintió durante el
+  diagnóstico.** Hunter reportó errores sin color; el fuente **sí** tenía
+  `red("Error")`, y el binario global (symlink al repo) seguía imprimiendo
+  `Error:` con dos puntos, que el fuente no escribe. Estuve buscando un segundo
+  camino de error inexistente hasta grepear el `dist`: era un build de una ronda
+  anterior. `bun run build` y apareció el rojo.
+  **Regla:** cuando el comportamiento observado contradice el fuente **en un
+  detalle que el fuente no puede producir** (acá, dos puntos que no están escritos
+  en ningún lado), sospechar del artefacto antes que de la lógica. Un `dist/`
+  versionado se desincroniza en silencio y convierte cada `git add -A` en una
+  publicación implícita.
+
 ### Ronda 22 (2026-07-28, --asignada tomaba otra butaca que la del mapa)
 
 - [cli-build] **Implementé la capacidad y no el pedido.** Hunter había preguntado

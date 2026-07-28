@@ -9,7 +9,7 @@ import { parseSeatMap, renderSeatMap } from "../seat-map.js";
 import type { SeatMap } from "../seat-map.js";
 import { toFuncion } from "./funciones.js";
 import { linkCorto, linkPelicula, openUrl } from "../links.js";
-import { amber, bold, dim, italic } from "../style.js";
+import { amber, bold, dim, errAmber, italic } from "../style.js";
 
 export interface ButacasOptions {
   sessionId: string;
@@ -176,8 +176,11 @@ export async function runButacas(options: ButacasOptions, flags: Flags, machineM
     }
 
     if (!machineMode) {
-      process.stdout.write(
-        `${amber("Aviso")}: este comando abre una orden real en Cinemark (POST /order-tickets). ` +
+      // A stderr: es un diagnóstico, no el dato pedido. En stdout contaminaba la
+      // salida de `butaca butacas ... > mapa.txt` con una advertencia que el
+      // archivo no debería llevar.
+      process.stderr.write(
+        `${errAmber("Aviso")}: este comando abre una orden real en Cinemark (POST /order-tickets). ` +
           `Correrlo varias veces deja varias transacciones abiertas.\n`,
       );
     }

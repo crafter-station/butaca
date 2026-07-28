@@ -97,3 +97,15 @@ export function shouldColor(): boolean {
   if (process.env.FORCE_COLOR) return true;
   return Boolean(process.stdout.isTTY);
 }
+
+/**
+ * Los diagnósticos van a stderr, así que su color depende de si ESE stream es
+ * una terminal. Preguntarle a stdout deja los errores en gris plano en el caso
+ * más común de todos: `butaca ... | jq`, donde stdout es un pipe y el humano
+ * sigue leyendo los errores en su terminal.
+ */
+export function shouldColorStderr(): boolean {
+  if (process.env.NO_COLOR) return false;
+  if (process.env.FORCE_COLOR) return true;
+  return Boolean(process.stderr.isTTY);
+}

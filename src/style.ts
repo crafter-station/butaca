@@ -1,9 +1,22 @@
-import { shouldColor } from "./platform/detect.js";
+import { shouldColor, shouldColorStderr } from "./platform/detect.js";
 
 // Todo pasa por acá y por shouldColor(), así NO_COLOR y un pipe apagan el
 // estilo en un solo lugar en vez de en cada call site.
 const on = (code: string, text: string): string =>
   shouldColor() ? `\x1b[${code}m${text}\x1b[0m` : text;
+
+/**
+ * Variante para diagnósticos. Mismo color, pero decidido por stderr: con
+ * `butaca ... | jq` stdout es un pipe y stderr sigue siendo la terminal, así que
+ * el error tiene que conservar el rojo que le dice al humano qué pasó.
+ */
+const onErr = (code: string, text: string): string =>
+  shouldColorStderr() ? `\x1b[${code}m${text}\x1b[0m` : text;
+
+export const errRed = (t: string): string => onErr("38;5;203", t);
+export const errAmber = (t: string): string => onErr("38;5;214", t);
+export const errDim = (t: string): string => onErr("2", t);
+export const errBold = (t: string): string => onErr("1", t);
 
 export const bold = (t: string): string => on("1", t);
 export const dim = (t: string): string => on("2", t);
