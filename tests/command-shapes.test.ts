@@ -57,7 +57,7 @@ describe("butaca butacas: shape JSON, sin red", () => {
 describe("butaca reservar: shape JSON, sin red", () => {
   it("sin --asientos, BAD_INPUT antes de tocar la red", async () => {
     const code = await runReservar(
-      { sessionId: "159037", cine: "palermo", asientos: [], dryRun: false, yes: true },
+      { sessionId: "159037", cine: "palermo", asientos: [], asignada: false, dryRun: false, yes: true },
       FLAGS,
       true,
     );

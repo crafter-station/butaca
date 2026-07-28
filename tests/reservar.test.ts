@@ -157,7 +157,11 @@ describe("etiquetasPedidas: --asignada", () => {
   });
 
   it("falla con hint si la orden no trajo preasignada", () => {
-    const sinAuto = { ...mapa, areas: [{ ...mapa.areas[0], seats: [mapa.areas[0].seats[1]] }] } as typeof mapa;
+    const area = mapa.areas[0];
+    if (!area) throw new Error("fixture sin área");
+    const libre = area.seats[1];
+    if (!libre) throw new Error("fixture sin butaca libre");
+    const sinAuto = { ...mapa, areas: [{ ...area, seats: [libre] }] } as typeof mapa;
     expect(() => etiquetasPedidas({ asientos: [], asignada: true }, sinAuto)).toThrow(/no preasignó/);
   });
 
