@@ -77,8 +77,14 @@ al disco.
 ```bash
 butaca auth login                     # guarda credenciales, abre sesión
 butaca butacas 159037 --cine palermo  # dibuja el mapa de la sala
-butaca reservar 159037 --cine palermo --asientos F12,F13
+butaca reservar 159037 --cine palermo --asientos 7-12,7-13
+butaca reservar 159037 --cine palermo --asignada   # la que Cinemark preasigna
 ```
+
+Las butacas se nombran `fila-asiento`. En Cinemark las filas son números, no
+letras. `--asignada` toma la butaca que Cinemark preasigna a la orden: no se
+puede pedir por `--asientos` porque su número pertenece a la orden que dibujó el
+mapa y ya no está disponible cuando `reservar` abre la suya.
 
 El mapa se dibuja por coordenada de grilla, así que los pasillos aparecen como
 huecos reales:

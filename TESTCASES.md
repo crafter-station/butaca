@@ -201,7 +201,7 @@ butaca auth status --json | jq -r '.error.code'
 butaca butacas 159037 --cine palermo --json | jq -r '.error.code'
 # AUTH_REQUIRED                                                        exit 1
 
-butaca reservar 159037 --cine palermo --asientos F12 --json | jq -r '.error.code'
+butaca reservar 159037 --cine palermo --asientos 7-12 --json | jq -r '.error.code'
 # AUTH_REQUIRED                                                        exit 1
 ```
 
@@ -268,7 +268,7 @@ diez transacciones abiertas. El comando lo avisa.
 ### 9.5 La reserva
 
 ```bash
-butaca reservar 159037 --cine palermo --asientos F12,F13 --dry-run
+butaca reservar 159037 --cine palermo --asientos 7-12,7-13 --dry-run
 ```
 
 Valida los asientos contra el mapa real **sin reservar**. Probá con un asiento
@@ -276,17 +276,47 @@ inexistente y con uno ya vendido: los dos tienen que fallar con un mensaje que
 diga cuál y por qué.
 
 ```bash
-butaca reservar 159037 --cine palermo --asientos F12,F13
+butaca reservar 159037 --cine palermo --asientos 7-12,7-13
 ```
 
 Pide confirmación explícita. **Esto bloquea butacas de verdad**, que otra persona
 no va a poder comprar.
 
 ```bash
-echo "" | butaca reservar 159037 --cine palermo --asientos F12 --json
+echo "" | butaca reservar 159037 --cine palermo --asientos 7-12 --json
 ```
 
 Sin TTY y sin `--yes` debe **fallar**, no colgarse ni reservar por default.
+
+### 9.6 La butaca preasignada
+
+```bash
+butaca butacas 159037 --cine palermo --json | jq '[.data.areas[].seats[] | select(.statusId==5) | "\(.row)-\(.number)"]'
+```
+
+Corré eso tres veces: **la butaca tiene que cambiar en cada corrida**. Es la que
+Cinemark preasigna a cada orden, no un atributo de la sala.
+
+```bash
+butaca reservar 159037 --cine palermo --asientos <la-de-arriba> --dry-run
+```
+
+Tiene que fallar con `SEATS_UNAVAILABLE` y estado `AUTO_ASIGNADA`: ese número
+pertenece a la orden que abrió `butacas`, no a la que abre `reservar`.
+
+```bash
+butaca reservar 159037 --cine palermo --asignada --dry-run
+```
+
+Tiene que dar `ok: true` con `wouldHold`. Resuelve la preasignada **dentro** de
+la orden que este comando abre, que es el único camino que la reserva. Corriéndolo
+dos veces, la butaca del resultado cambia sola.
+
+```bash
+butaca reservar 159037 --cine palermo --json
+```
+
+Sin `--asientos` ni `--asignada` debe fallar con `BAD_INPUT` nombrando los dos.
 
 ```bash
 cat ~/.butaca/audit/*.jsonl | jq -c 'select(.status=="pending")' | tail -2

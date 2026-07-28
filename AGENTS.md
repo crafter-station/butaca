@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 20 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 21 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -86,6 +86,10 @@ columna los resuelve todos.
 
 Cuando una columna lleva un identificador, se llama como el flag o comando que
 lo consume (`butacas`, `--peli`), no por su nombre interno.
+
+**Un formato equivocado vive en todos los docs que lo copiaron.** Arreglé
+`--asientos F12,F13` en el `--help` y lo dejé intacto en README, SKILL y
+TESTCASES. `grep -rn --include="*.md"` sobre el valor viejo cuesta un comando.
 
 **Y al cambiar de dónde sale el ejemplo, revisá todo lo que lo describe.** Saqué
 la butaca preasignada de la sugerencia y dejé la leyenda llamandola "la que te

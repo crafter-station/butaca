@@ -72,7 +72,8 @@ Con cuenta (ver "Superficie autenticada" más abajo antes de usarlos):
 ```bash
 butaca auth login | status | logout
 butaca butacas <sessionId> --cine <slug> [--dry-run]
-butaca reservar <sessionId> --cine <slug> --asientos F12,F13 [--dry-run] [--yes]
+butaca reservar <sessionId> --cine <slug> --asientos 7-12,7-13 [--dry-run] [--yes]
+butaca reservar <sessionId> --cine <slug> --asignada [--dry-run] [--yes]
 ```
 
 Globales: `--json`, `--fields <a,b>`, `--no-cache`, `--open`, `--help`,
@@ -179,12 +180,23 @@ poder comprar. Nunca lo llames sin que el usuario haya pedido esas butacas
 concretas. Tiene `--dry-run` que valida contra el mapa sin reservar: usalo para
 confirmar que los asientos existen y están libres.
 
+**El estado `AUTO_ASIGNADA` (5) es de la orden, no de la sala.** Cinemark
+preasigna una butaca a cada orden que se abre, así que la que aparece en la
+salida de `butacas` pertenece a la orden que ese comando abrió y **ya no está
+disponible** cuando `reservar` abre la suya. Pedirla por `--asientos` devuelve
+`SEATS_UNAVAILABLE`. Para tomarla existe `--asignada`, que la resuelve dentro de
+la orden que `reservar` abre. Nunca copies el número de una corrida de `butacas`
+a un `--asientos`: no es estable entre comandos.
+
+**Las filas de Cinemark son números, no letras.** Las butacas se nombran
+`fila-asiento` (`7-12`), y `F12` no parsea en esta cadena.
+
 **Sin sesión los tres fallan con `AUTH_REQUIRED`** y un hint que nombra
 `butaca auth login`. Nunca se cuelgan pidiendo contraseña, ni siquiera en un
 pipe.
 
 En el shape de `butacas`, cada asiento trae **dos representaciones**: `row` y
-`number` son la etiqueta que lee un humano (`F12`), `gridRow` y `gridNumber` son
+`number` son la etiqueta que lee un humano (`7-12`), `gridRow` y `gridNumber` son
 la coordenada que exige la API de reserva. Están las dos a propósito, porque la
 traducción no es trivial y la API no acepta etiquetas.
 

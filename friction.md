@@ -5,6 +5,33 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 21 (2026-07-28, auditoría de docs: los ejemplos no compilaban)
+
+- [cli-build] **Tres docs de usuario daban un ejemplo que falla al pegarlo.**
+  `README.md`, `SKILL.md` y `TESTCASES.md` documentaban `--asientos F12,F13`,
+  formato que esta cadena **no acepta**: sus filas son numéricas. Es la misma
+  herencia del contrato inicial que arreglé en el `--help` la ronda pasada, y
+  arreglé solo el `--help`. **Un formato equivocado no vive en un lugar: vive en
+  todos los que lo copiaron del contrato original.** El grep que lo encuentra
+  (`grep -rn "F12" --include="*.md"`) cuesta un comando y no lo corrí hasta que
+  Hunter preguntó si la doc estaba al día.
+- [cli-build] **`--asignada` no estaba en ningún doc de usuario.** Estaba en
+  `CONTRACT-AUTH.md` y en `AGENTS.md`, o sea en los docs que escribo para mí, y
+  faltaba en los tres que lee alguien más. Agregado, con la explicación de por
+  qué no se puede pedir por `--asientos`, que es el punto no obvio.
+- [cli-build] **La copia del vault estaba stale, como estaba anunciado.** El case
+  ya decía "`TESTCASES.md` en el vault es copia, no symlink, y va a driftear", y
+  drifteó. Escribir la predicción no la evita. Convertido en symlink relativo
+  (per la convención de symlinks: intra-repo relativo, cross-repo absoluto; acá
+  cruza repos pero apunta desde el vault a un path bajo `~/Programming`, así que
+  el relativo sobrevive un rename del vault y no un rename de `Programming`).
+- [cli-build] **Los casos nuevos de TESTCASES se verificaron antes de
+  escribirlos.** Los tres que agregué para `--asignada` (la ámbar cambia por
+  corrida, pedirla a mano falla, `--asignada` funciona) se corrieron primero
+  contra el upstream: `12-16`, `13-1`, `13-4` en tres lecturas, y `ok: true` con
+  butacas distintas en dos dry-runs. Un archivo de casos manuales que nadie corrió
+  es una lista de deseos.
+
 ### Ronda 20 (2026-07-28, la asignada sí era reservable)
 
 - [cli-build] **Casi respondo "no se puede" sin probarlo.** Hunter preguntó cómo
