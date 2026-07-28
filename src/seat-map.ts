@@ -336,7 +336,12 @@ function legendLine(useColor: boolean, presentes: number[], numerada = false): s
     1: "ocupada",
     3: "accesible",
     4: "accesible",
-    5: "la que te asignaron",
+    // NO decir "la que te asignaron": suena a que es tuya y reservable, y es lo
+    // contrario. Cinemark preasigna una butaca a la orden que se abre para leer
+    // el mapa, y esa orden muere en cuanto corrés `reservar`, que abre otra. Al
+    // usuario le quedaba una pantalla irreconciliable: el ámbar decía una butaca
+    // y el comando sugerido otra, sin nada que explicara la diferencia.
+    5: "tomada por otra orden",
     6: "fuera de servicio",
     7: "fuera de servicio",
     8: "bloqueada",

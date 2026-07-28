@@ -300,6 +300,25 @@ venta, consultar sigue andando, probá más tarde".
 reconocerlo.** El costo es una expresión regular; el beneficio es que el usuario
 no busca el problema donde no está.
 
+## 17b. Al cambiar un dato, revisá todo lo que lo describe
+
+Corolario de la regla 16, aprendido inmediatamente después de aplicarla. Saqué
+la butaca preasignada del comando sugerido y dejé intacta la leyenda que la
+llamaba **"la que te asignaron"**.
+
+Resultado: el mapa pintaba de ámbar una butaca diciendo que era del usuario, y
+el comando de abajo nombraba otra. Dos afirmaciones incompatibles en la misma
+pantalla, sin nada que las conciliara. Antes del fix había un ejemplo que
+fallaba; después, una contradicción.
+
+**Un fix parcial en una superficie visual produce contradicción, no solo
+información faltante.** El texto que describe un dato es parte del dato.
+
+**Y un ejemplo sin etiqueta se lee como estado.** El comando salía pelado, y
+pelado significa "esto es lo que elegiste". Si la interfaz no tiene el concepto
+de "seleccionado", hay que decirlo, porque el usuario llega con ese modelo
+mental desde cualquier app equivalente.
+
 ## 18. Una barra y una etiqueta no comparten escala
 
 `barraOcupacion` escalaba hasta el 50 por ciento para que su tope coincidiera con

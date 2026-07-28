@@ -262,7 +262,14 @@ export async function runButacas(options: ButacasOptions, flags: Flags, machineM
     // memoria del cliente. Lo más cerca que se llega es la página de la peli
     // con el cine ya elegido, que sí está verificado.
     if (options.cine) {
-      process.stdout.write(`\n${dim(reservarSugerido(options.sessionId, options.cine, seatMap))}\n`);
+      // El comando salía pelado y el usuario lo leía como "la butaca elegida",
+      // que chocaba con la ámbar del mapa: dos butacas distintas en la misma
+      // pantalla sin nada que las explicara. Ninguna está seleccionada; el CLI
+      // no tiene selección, se pide lo que se quiere. Decirlo evita la
+      // contradicción aparente.
+      process.stdout.write(
+        `\n${dim("Ninguna está elegida todavía. Ejemplo con una libre:")}\n${dim(reservarSugerido(options.sessionId, options.cine, seatMap))}\n`,
+      );
     }
 
     if (siteUrl) {

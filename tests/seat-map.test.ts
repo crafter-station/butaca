@@ -272,3 +272,17 @@ describe("renderSeatMap --numeros", () => {
     expect(drawing).not.toMatch(/\x1b\[/);
   });
 });
+
+describe("leyenda del estado 5 (regresión)", () => {
+  // Decía "la que te asignaron", que implica que es tuya y reservable. Es lo
+  // contrario: la preasigna la orden que se abre para leer el mapa, y esa orden
+  // muere en cuanto corrés `reservar`. Con la etiqueta vieja el usuario veía el
+  // ámbar en 12-16 y el comando sugerido en 2-30, sin nada que lo explicara, y
+  // al pegar 12-16 recibía NO_DISPONIBLE.
+  it("no promete que la butaca ámbar sea del usuario", () => {
+    const seatMap = parseSeatMap(fixture as unknown as RawSeatMapResponse);
+    const drawing = renderSeatMap(seatMap, { color: false });
+    expect(drawing).not.toContain("te asignaron");
+    expect(drawing).toContain("otra orden");
+  });
+});

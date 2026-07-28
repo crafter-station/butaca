@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 18 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 19 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -9,7 +9,7 @@ originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 ## Antes de tocar nada
 
 ```bash
-bun test          # 177 tests, sin red
+bun test          # 178 tests, sin red
 npx tsc --noEmit  # src
 npx tsc --noEmit -p tsconfig.test.json
 npx biome check --write .
@@ -86,6 +86,12 @@ columna los resuelve todos.
 
 Cuando una columna lleva un identificador, se llama como el flag o comando que
 lo consume (`butacas`, `--peli`), no por su nombre interno.
+
+**Y al cambiar de dónde sale el ejemplo, revisá todo lo que lo describe.** Saqué
+la butaca preasignada de la sugerencia y dejé la leyenda llamandola "la que te
+asignaron": el mapa marcaba una butaca como tuya y el comando nombraba otra. Un
+fix parcial en una superficie visual produce contradicción, no solo información
+faltante.
 
 ### 7. Un fixture que no cruza el límite no prueba nada
 

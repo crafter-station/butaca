@@ -5,6 +5,32 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 19 (2026-07-28, la leyenda prometía algo falso)
+
+- [cli-build] **Arreglé el comando y dejé la pantalla contradiciéndose.** En la
+  ronda 18 saqué la butaca preasignada de la sugerencia, así que el comando pasó
+  a decir `2-30` mientras el mapa seguía pintando de ámbar la `12-16` con la
+  etiqueta **"la que te asignaron"**. Hunter preguntó lo obvio: cuál está
+  seleccionada, y si la tabla estaba desactualizada. Ninguna de las dos: la
+  tabla estaba bien y el comando también, **la leyenda mentía**.
+  "La que te asignaron" implica que es tuya y reservable, y es lo contrario: la
+  preasigna la orden que se abre para leer el mapa, y esa orden muere en cuanto
+  corrés `reservar`. Corregido a **"tomada por otra orden"**, que es lo que
+  efectivamente es desde el punto de vista de la reserva siguiente.
+  **Regla:** al arreglar la fuente de un dato hay que revisar todo lo que lo
+  describe. Cambié la lógica y dejé intacta la etiqueta que la explicaba, así
+  que la pantalla quedó peor que antes: antes era un ejemplo que fallaba, después
+  fueron dos afirmaciones incompatibles en la misma vista. **Un fix parcial en
+  una superficie visual produce contradicción, no solo información faltante.**
+- [cli-build] **El comando sugerido salía pelado y se leía como una selección.**
+  Sin ninguna palabra alrededor, `butaca reservar ... --asientos 2-30` parece
+  "esto es lo que elegiste", que es justo lo que chocaba con el ámbar. El CLI no
+  tiene selección: se pide lo que se quiere. Ahora lo dice: *"Ninguna está
+  elegida todavía. Ejemplo con una libre:"*.
+  **Regla:** un ejemplo sin etiqueta se lee como estado. Si la interfaz no tiene
+  el concepto de "seleccionado", hay que decirlo, porque el usuario llega con ese
+  modelo mental desde cualquier app de cine.
+
 ### Ronda 18 (2026-07-28, la sugerencia se autodestruía, y AGENTS.md)
 
 - [cli-build] **El comando sugerido fallaba justo por ser el "mejor" ejemplo.**
