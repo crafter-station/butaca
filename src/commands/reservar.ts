@@ -188,7 +188,14 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
     }
     const cinemaId = String(theater.id);
 
-    if (needsInteractiveConfirmation({ yes: options.yes, machineMode, stdinIsTty: Boolean(stdin.isTTY) })) {
+    // El gate de confirmación no aplica a --dry-run: no toma inventario ni deja
+    // nada reservado, así que exigir --yes para previsualizar obliga a tipear la
+    // bandera que saltea confirmaciones justo cuando el usuario está siendo
+    // cuidadoso. Peor: acostumbra a pasarla, que es lo que el gate quiere evitar.
+    if (
+      !options.dryRun &&
+      needsInteractiveConfirmation({ yes: options.yes, machineMode, stdinIsTty: Boolean(stdin.isTTY) })
+    ) {
       return reportError(
         machineMode,
         new ApiError(

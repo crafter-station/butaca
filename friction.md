@@ -5,6 +5,44 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 18 (2026-07-28, la sugerencia se autodestruía, y AGENTS.md)
+
+- [cli-build] **El comando sugerido fallaba justo por ser el "mejor" ejemplo.**
+  En la ronda 15 cambié la sugerencia de "primera butaca libre" a "la que
+  Cinemark preasigna", razonando que era la honesta porque es la que el sitio te
+  deja marcada. Hunter pegó el comando emitido y recibió
+  `"12-16" no está disponible (estado: NO_DISPONIBLE)`, y preguntó si era caché.
+  No era caché. **La preasignada pertenece a la orden que la creó y muere con
+  ella:** `reservar` abre una orden nueva, recibe otra preasignada, y la anterior
+  vuelve al mapa como no disponible. Medido con tres llamadas seguidas a la misma
+  función: `13-4`, `13-6`, `13-8`, cada una con su `transIdTemp`.
+  O sea el comando emitido era irreproducible **por construcción**: el acto de
+  ejecutarlo invalidaba su propio argumento. Vuelve a sugerir una butaca libre,
+  que sigue libre en la orden siguiente salvo que alguien la compre en el medio,
+  que es un fallo honesto y no uno que fabricamos nosotros.
+  **Regla:** un ejemplo emitido tiene que sobrevivir al comando que lo consume.
+  Si el argumento sale de un estado ligado a la transacción actual, la próxima
+  transacción lo invalida. La prueba no es "¿existe este valor?" sino "¿sigue
+  existiendo después de que corran lo que le sugiero?".
+  Y la ironía: la ronda 15 anotó "un estado que varía entre respuestas no es un
+  atributo del recurso", entendí que era volátil, y **igual lo usé como
+  argumento estable**. Reconocer que un dato es efímero y después usarlo como si
+  no lo fuera son dos pasos distintos.
+- [cli-build] **`--dry-run` exigía `--yes`.** El gate de confirmación corría
+  antes de la rama de dry-run, así que previsualizar sin terminal interactiva
+  pedía la bandera que saltea confirmaciones. Un dry-run no toma inventario ni
+  deja nada reservado, así que el gate no aplica; peor, obligaba a acostumbrarse
+  a tipear `--yes`, que es exactamente lo que el gate quiere evitar. Verificado
+  que la reserva real sigue bloqueada sin confirmación.
+- [cli-build] **Escrito `AGENTS.md`.** Idea de Hunter: un CLI nuevo debería
+  arrancar con AGENTS.md para que los lineamientos sobrevivan a la iteración en
+  la que se aprendieron. Las 80 entradas de este friction se destilaron en 11
+  reglas, cada una nombrando el defecto que la originó, más límites que no se
+  cruzan (pago, captchas, secretos, escrituras) y el cierre de ronda.
+  El criterio para incluir una regla fue que hubiera evitado un defecto real de
+  este repo. El criterio para no incluirla: que ya esté cubierta por un test, que
+  es una guarda más fuerte que un párrafo.
+
 ### Ronda 17 (2026-07-27, auditoría de documentación: el schema mentía)
 
 - [cli-build] **`schema` cubría 3 de 8 comandos.** Pedirle el shape de

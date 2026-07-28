@@ -96,19 +96,20 @@ async function resolveFuncion(cinemaId: string, sessionId: string): Promise<Func
  * placeholder. Un ejemplo con butacas inventadas falla al pegarlo, que es peor
  * que no dar ejemplo.
  */
-function reservarSugerido(sessionId: string, cine: string, seatMap: SeatMap): string {
+export function reservarSugerido(sessionId: string, cine: string, seatMap: SeatMap): string {
   const todas = seatMap.areas.flatMap((a) => a.seats);
-  // La butaca que Cinemark preasignó a ESTA orden (estado 5) es la que el sitio
-  // te deja marcada, así que es la sugerencia honesta. Verificado que cambia por
-  // orden: tres órdenes seguidas dieron 12-5, 12-4 y 10-8.
-  const asignadas = todas.filter((s) => s.statusId === 5).map((s) => `${s.row}-${s.number}`);
-  const elegidas =
-    asignadas.length > 0
-      ? asignadas
-      : todas
-          .filter((s) => s.statusId === 0)
-          .slice(0, 1)
-          .map((s) => `${s.row}-${s.number}`);
+  // NO se sugiere la butaca preasignada (estado 5). Es tentador porque es la que
+  // el sitio te deja marcada, pero pertenece a ESTA orden y muere con ella:
+  // `reservar` abre una orden nueva, que recibe otra preasignada, y la anterior
+  // vuelve al mapa como NO_DISPONIBLE. Verificado con tres llamadas seguidas a
+  // la misma función: 13-4, 13-6, 13-8, cada una con su transIdTemp. Sugerirla
+  // producía un comando que fallaba al pegarlo con "no está disponible".
+  // Una butaca libre sigue libre en la orden siguiente, salvo que alguien la
+  // compre en el medio, que es un fallo honesto y no uno que nosotros creamos.
+  const elegidas = todas
+    .filter((s) => s.statusId === 0)
+    .slice(0, 1)
+    .map((s) => `${s.row}-${s.number}`);
   const ejemplo = elegidas.length > 0 ? elegidas.join(",") : "<fila-asiento>";
   return `butaca reservar ${sessionId} --cine ${cine} --asientos ${ejemplo}`;
 }

@@ -271,6 +271,17 @@ Tres versiones del mismo error:
 **Si tu salida imprime un fragmento de comando, ese fragmento tiene que funcionar
 pegado tal cual.** Un ejemplo que falla al pegarlo es peor que no dar ejemplo.
 
+**Y tiene que sobrevivir al comando que lo consume.** La tercera versión, la
+"mejor", resultó ser la peor: la butaca preasignada pertenece a la transacción
+que la creó, así que ejecutar el comando sugerido abría una transacción nueva
+que invalidaba su propio argumento. El ejemplo era irreproducible por
+construcción. La pregunta no es "¿este valor existe?" sino "¿sigue existiendo
+después de que corran lo que le estoy sugiriendo?".
+
+Lo notable es que la regla 14 de este mismo archivo ya decía que ese estado era
+volátil. Reconocer que un dato es efímero y no usarlo como argumento estable son
+dos pasos distintos, y el segundo no se sigue del primero.
+
 Lo mismo con los flags que la salida sugiere: si imprimís `--peli <slug>` en cada
 tarjeta, ese flag tiene que existir. Un `--help` que no lo lista es una promesa
 a medias.
