@@ -184,9 +184,12 @@ confirmar que los asientos existen y están libres.
 preasigna una butaca a cada orden que se abre, así que la que aparece en la
 salida de `butacas` pertenece a la orden que ese comando abrió y **ya no está
 disponible** cuando `reservar` abre la suya. Pedirla por `--asientos` devuelve
-`SEATS_UNAVAILABLE`. Para tomarla existe `--asignada`, que la resuelve dentro de
-la orden que `reservar` abre. Nunca copies el número de una corrida de `butacas`
-a un `--asientos`: no es estable entre comandos.
+`SEATS_UNAVAILABLE`. Para quedarse con **la que se vio en el mapa** hay que pasar
+`--asignada --orden <transIdTemp>`: `--orden` reusa la transacción que abrió
+`butacas` en vez de abrir una nueva, y el `transIdTemp` viene en el payload de
+`butacas`. Con `--asignada` solo, se abre una orden nueva y la preasignada es
+otra butaca. Nunca copies el número de una corrida de `butacas` a un
+`--asientos`: no es estable entre comandos.
 
 **Las filas de Cinemark son números, no letras.** Las butacas se nombran
 `fila-asiento` (`7-12`), y `F12` no parsea en esta cadena.

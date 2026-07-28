@@ -54,7 +54,7 @@ ${uso("butaca butacas", "<sessionId> --cine <slug>", "dibuja el mapa de asientos
 ${uso("", "[--dry-run]", "no abre orden, explica qué haría")}
 ${uso("butaca reservar", "<sessionId> --cine <slug>", "hold real de butacas")}
 ${uso("", "--asientos 7-12,7-13 [--dry-run] [--yes]")}
-${uso("", "--asignada  la butaca que Cinemark preasigna a la orden")}
+${uso("", "--asignada [--orden <id>]  la butaca ámbar del mapa")}
 
 ${bold(underline("Opciones"))}
 ${opcion("--json", "fuerza salida JSON aunque haya TTY")}
@@ -290,6 +290,7 @@ async function main(): Promise<number> {
           cine: args.cine,
           asientos: args.asientos ?? [],
           asignada: args.asignada,
+          orden: args.orden,
           dryRun: args.dryRun,
           yes: args.yes,
         },

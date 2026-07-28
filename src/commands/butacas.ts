@@ -269,7 +269,7 @@ export async function runButacas(options: ButacasOptions, flags: Flags, machineM
       // contradicción aparente.
       process.stdout.write(
         `\n${dim("Ninguna está elegida todavía. Ejemplo con una libre:")}\n${dim(reservarSugerido(options.sessionId, options.cine, seatMap))}\n` +
-          `${dim(`O quedate con la ámbar: butaca reservar ${options.sessionId} --cine ${options.cine} --asignada`)}\n`,
+          `${dim(`O quedate con la ámbar: butaca reservar ${options.sessionId} --cine ${options.cine} --asignada --orden ${transIdTemp}`)}\n`,
       );
     }
 

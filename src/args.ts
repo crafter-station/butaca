@@ -1,3 +1,5 @@
+import { ApiError } from "./api.js";
+
 export interface ParsedArgs {
   command: string | null;
   positional: string[];
@@ -20,6 +22,7 @@ export interface ParsedArgs {
   libres: number | null;
   asientos: string[] | null;
   asignada: boolean;
+  orden: number | null;
   email: string | null;
   password: string | null;
 }
@@ -47,6 +50,7 @@ function takesValue(flag: string): boolean {
     "--libres",
     "--fields",
     "--asientos",
+    "--orden",
     "--email",
     "--password",
   ].includes(flag);
@@ -75,6 +79,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     libres: null,
     asientos: null,
     asignada: false,
+    orden: null,
     email: null,
     password: null,
   };
@@ -167,6 +172,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
         case "--fields":
           result.fields = value.split(",").map((f) => f.trim()).filter((f) => f.length > 0);
           break;
+        case "--orden": {
+          const n = Number(value);
+          if (!Number.isFinite(n) || n <= 0) {
+            throw new ApiError("BAD_INPUT", `--orden espera el transIdTemp que devuelve butacas, recibió "${value}"`, "Sale de `butaca butacas ... --json` en data.transIdTemp.");
+          }
+          result.orden = n;
+          break;
+        }
         case "--asientos":
           result.asientos = value.split(",").map((f) => f.trim()).filter((f) => f.length > 0);
           break;

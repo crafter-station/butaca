@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 21 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 22 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -9,7 +9,7 @@ originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 ## Antes de tocar nada
 
 ```bash
-bun test          # 182 tests, sin red
+bun test          # 185 tests, sin red
 npx tsc --noEmit  # src
 npx tsc --noEmit -p tsconfig.test.json
 npx biome check --write .
@@ -96,6 +96,20 @@ la butaca preasignada de la sugerencia y dejé la leyenda llamandola "la que te
 asignaron": el mapa marcaba una butaca como tuya y el comando nombraba otra. Un
 fix parcial en una superficie visual produce contradicción, no solo información
 faltante.
+
+### 6b. Una aclaración de por qué el comando no hace lo esperado es el bug
+
+Construí un flag que reservaba *una* butaca preasignada, no **la que el usuario
+veía en el mapa**, y mi primer reflejo fue agregar una nota explicando que sería
+otra. Eso documenta la limitación en vez de resolverla. Resultó que sí se podía:
+el endpoint acepta el id de la transacción que abrió el comando anterior.
+
+Cuando el usuario pide "quiero X" y la implementación entrega "algo de la clase
+de X", no está hecho.
+
+Corolario de verificación: probá el **ciclo**, no el comando suelto. La pregunta
+no era "¿reserva algo?" sino "¿la butaca que el mapa pinta es la que termina
+reservada?".
 
 ### 7. Un fixture que no cruza el límite no prueba nada
 

@@ -102,7 +102,7 @@ export const SCHEMAS: Record<string, unknown> = {
       expiresAt: "string (ISO, solo si el upstream lo informa)",
     },
     notes:
-      "Toma inventario real. Requiere confirmación salvo --yes. Con --dry-run valida contra el mapa y no reserva, y no exige --yes. El pago no se automatiza: termina en checkoutUrl. --asignada toma la butaca que Cinemark preasigna a la orden que este comando abre: no se puede pedir por --asientos porque el número que muestra `butacas` pertenece a otra orden y ya no está disponible cuando `reservar` abre la suya.",
+      "Toma inventario real. Requiere confirmación salvo --yes. Con --dry-run valida contra el mapa y no reserva, y no exige --yes. El pago no se automatiza: termina en checkoutUrl. --asignada toma la butaca que Cinemark preasigna. Cada orden recibe la suya, así que para quedarse con la que se vio en el mapa hay que pasar además --orden <transIdTemp>, que reusa la transacción que abrió `butacas` en vez de abrir una nueva. Sin --orden se abre una orden nueva y la preasignada es otra.",
   },
   auth: {
     version: SCHEMA_VERSION,

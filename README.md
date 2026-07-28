@@ -78,13 +78,14 @@ al disco.
 butaca auth login                     # guarda credenciales, abre sesión
 butaca butacas 159037 --cine palermo  # dibuja el mapa de la sala
 butaca reservar 159037 --cine palermo --asientos 7-12,7-13
-butaca reservar 159037 --cine palermo --asignada   # la que Cinemark preasigna
+butaca reservar 159037 --cine palermo --asignada --orden <transIdTemp>
 ```
 
 Las butacas se nombran `fila-asiento`. En Cinemark las filas son números, no
-letras. `--asignada` toma la butaca que Cinemark preasigna a la orden: no se
-puede pedir por `--asientos` porque su número pertenece a la orden que dibujó el
-mapa y ya no está disponible cuando `reservar` abre la suya.
+letras. `--asignada` toma la butaca que Cinemark preasigna. Cada orden
+recibe la suya, así que para quedarte con la ámbar **que viste en el mapa** hay
+que pasar además `--orden`, con el `transIdTemp` que `butacas` devuelve: reusa
+esa transacción en vez de abrir otra. `butacas` ya emite el comando armado.
 
 El mapa se dibuja por coordenada de grilla, así que los pasillos aparecen como
 huecos reales:

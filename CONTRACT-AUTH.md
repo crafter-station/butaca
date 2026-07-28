@@ -33,6 +33,7 @@ butaca butacas <sessionId>             dibuja el mapa de asientos
 butaca reservar <sessionId>            hold real de butacas
        --asientos 7-12,7-13
        [--asignada]                    la butaca que Cinemark preasigna
+       [--orden <transIdTemp>]         reusa la orden que abrió `butacas`
        [--dry-run]                     valida sin reservar
        [--yes]                         saltea la confirmación
 ```

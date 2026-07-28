@@ -16,6 +16,7 @@ export interface ReservarOptions {
   cine: string | null;
   asientos: string[];
   asignada: boolean;
+  orden: number | null;
   dryRun: boolean;
   yes: boolean;
 }
@@ -182,6 +183,29 @@ export function etiquetasPedidas(
   return [...asignadas, ...options.asientos];
 }
 
+/**
+ * Con --orden se reusa la transacción que abrió `butaca butacas` en vez de abrir
+ * una nueva. Es la única forma de quedarse con la butaca ámbar **que se vio en
+ * el mapa**: cada orden recibe su propia preasignada, así que abrir una segunda
+ * devuelve otra butaca y la del mapa vuelve a estar tomada. Verificado: hold
+ * sobre el transIdTemp de `butacas`, con esa misma butaca, responde Code 0.
+ *
+ * Sin el flag se abre una orden nueva, que es lo correcto cuando el usuario pide
+ * butacas por nombre: esas son estables entre órdenes.
+ */
+async function abrirOReusar(
+  options: Pick<ReservarOptions, "orden" | "sessionId">,
+  cinemaId: string,
+  ticketList: TicketListEntry[],
+  session: NonNullable<ReturnType<typeof currentSession>>,
+): Promise<{ transIdTemp: number }> {
+  if (options.orden !== null) return { transIdTemp: options.orden };
+  return openOrder(
+    { sessionId: options.sessionId, cinemaId, memberId: session.session.memberId, ticketList },
+    session.session.memberSessionId,
+  );
+}
+
 export async function runReservar(options: ReservarOptions, flags: Flags, machineMode: boolean): Promise<number> {
   try {
     if (options.asientos.length === 0 && !options.asignada) {
@@ -254,10 +278,7 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
 
     if (options.dryRun) {
       auditPending({ id: auditId, kind: "order.dry-run", command: commandStr, meta: { sessionId: options.sessionId } });
-      const opened = await openOrder(
-        { sessionId: options.sessionId, cinemaId, memberId: session.session.memberId, ticketList },
-        session.session.memberSessionId,
-      );
+      const opened = await abrirOReusar(options, cinemaId, ticketList, session);
       const rawMap = await fetchSeatMap(cinemaId, opened.transIdTemp, options.sessionId, session.session.memberSessionId);
       const seatMap = parseSeatMap(rawMap);
       const pedidos = etiquetasPedidas(options, seatMap);
@@ -287,10 +308,7 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
     let held: Awaited<ReturnType<typeof holdSeats>>;
     let transIdTemp: number;
     try {
-      const opened = await openOrder(
-        { sessionId: options.sessionId, cinemaId, memberId: session.session.memberId, ticketList },
-        session.session.memberSessionId,
-      );
+      const opened = await abrirOReusar(options, cinemaId, ticketList, session);
       transIdTemp = opened.transIdTemp;
 
       const rawMap = await fetchSeatMap(cinemaId, transIdTemp, options.sessionId, session.session.memberSessionId);

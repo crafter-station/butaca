@@ -5,6 +5,38 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 22 (2026-07-28, --asignada tomaba otra butaca que la del mapa)
+
+- [cli-build] **Implementé la capacidad y no el pedido.** Hunter había preguntado
+  cómo quedarse con **la butaca ámbar**, y yo construí `--asignada` de forma que
+  abría una orden nueva: correcto en el sentido de que reserva *una* preasignada,
+  inútil en el sentido de que **no es la que el usuario está mirando**. Lo vio de
+  inmediato: "13-12 es la pintada y --asignada me da 13-14".
+  El primer reflejo fue explicar por qué era esperado y agregar una nota
+  aclarando que sería otra butaca. Eso es documentar la limitación en vez de
+  resolverla, y Hunter cortó bien: "entonces es imposible? no debería funcionar
+  así".
+  **Sí se podía.** `order-set-seats` acepta el `transIdTemp` de la orden que
+  abrió `butacas`: verificado con `Code 0` sobre esa misma butaca ámbar. El
+  arreglo es `--orden <transIdTemp>`, que reusa esa transacción en vez de abrir
+  otra, y `butacas` ahora emite el comando ya armado con el id.
+  **Regla:** cuando el usuario pide "quiero X" y la implementación entrega "algo
+  de la clase de X", no está hecho. Y una nota explicando por qué el resultado
+  difiere del pedido es una señal de que falta trabajo, no de que falte
+  documentación. **Si te encontrás escribiendo una aclaración de por qué el
+  comando no hace lo que el usuario esperaba, esa aclaración es el bug.**
+- [cli-build] **Verificación del ciclo completo, no del comando suelto.** El
+  chequeo que importaba no era "¿`--asignada` reserva algo?" sino "¿la butaca que
+  el mapa pinta es la que termina reservada?". Corrido de punta a punta: `butacas`
+  dio orden `20012811334` con ámbar `11-16`, y `reservar --asignada --orden
+  20012811334` devolvió el mismo id y `11-16`. Después pegué el comando emitido
+  tal cual, sin editarlo, y funcionó.
+- [tests] **Volví a romper el mismo gate.** Agregar un campo a `ReservarOptions`
+  dejó `tsc -p tsconfig.test.json` roto mientras `bun test` pasaba en verde, que
+  es exactamente lo que pasó en la ronda 20 y está escrito en `AGENTS.md`. Los
+  dos comandos existen porque cubren cosas distintas; correr uno solo es no
+  correr el gate.
+
 ### Ronda 21 (2026-07-28, auditoría de docs: los ejemplos no compilaban)
 
 - [cli-build] **Tres docs de usuario daban un ejemplo que falla al pegarlo.**

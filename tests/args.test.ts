@@ -102,3 +102,23 @@ describe("isKnownCommand", () => {
     expect(isKnownCommand("palermo")).toBe(false);
   });
 });
+
+describe("--orden (regresión)", () => {
+  // Sin --orden, `reservar` abría una orden nueva y recibía OTRA preasignada,
+  // así que la butaca ámbar que el usuario acababa de ver en el mapa era
+  // irreservable: el mapa mostraba 13-12 y reservar tomaba 13-14. Con --orden
+  // se reusa la transacción que abrió `butacas`, verificado con Code 0 sobre
+  // esa misma butaca.
+  it("parsea el transIdTemp", () => {
+    expect(parseArgs(["reservar", "159147", "--orden", "20012811334"]).orden).toBe(20012811334);
+  });
+
+  it("es null cuando no se pasa", () => {
+    expect(parseArgs(["reservar", "159147"]).orden).toBeNull();
+  });
+
+  it("rechaza un valor que no es un id de orden", () => {
+    expect(() => parseArgs(["reservar", "159147", "--orden", "abc"])).toThrow(/transIdTemp/);
+    expect(() => parseArgs(["reservar", "159147", "--orden", "0"])).toThrow(/transIdTemp/);
+  });
+});
