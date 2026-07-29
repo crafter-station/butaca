@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 25 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 27 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -204,6 +204,16 @@ Cuando el upstream falla, reproducir sin sesión. Una falla que persiste sin
 identidad no es sobre tu identidad. Acá: lectura pública en 200, `order-tickets`
 anónimo en 401 antes del mensaje de suspensión, y el flujo en navegador limpio
 terminando en el login normal.
+
+### 11b. Un valor conservador también necesita evidencia
+
+Puse un TTL de 60s "por las dudas", justificado con una medición parcial (30s,
+lo único que había esperado) y con la hipótesis de que una orden vieja mostraría
+inventario congelado. Medido después: la orden sirve a los 50 minutos y el mapa
+viene **actualizado**. La hipótesis era falsa y estaba escrita como comentario en
+el código, o sea documentada como hecho.
+
+Prudente no es lo mismo que verificado.
 
 ### 12. Un flujo que no puede terminar no debería tomar inventario
 

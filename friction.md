@@ -5,6 +5,33 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 27 (2026-07-28, el TTL estaba mal por la razón equivocada)
+
+- [cli-build] **Implementé el caché con una medición a medias y una hipótesis
+  falsa.** Puse `TTL_MS = 60_000` justificándolo con "verificado que una orden
+  sirve al menos 30 segundos" (lo único que había esperado en ese momento) más
+  el argumento de que la ventana debía ser corta porque **el mapa cambia cuando
+  otros compran y una orden vieja mostraría butacas vendidas como libres**.
+  La medición larga terminó después: la orden sirve a los 120s, 300s, 600s y
+  también **a los ~50 minutos**. No encontré el techo.
+  Y la hipótesis era falsa: forcé el caché a apuntar a la orden de 50 minutos y
+  el mapa vino **actualizado**, con los mismos 172 libres de 250 que una orden
+  recién abierta. El `transIdTemp` identifica la transacción, no una foto del
+  inventario. TTL a 10 minutos.
+  **Regla:** un valor conservador puesto "por las dudas" es una decisión técnica
+  igual que uno agresivo, y merece la misma evidencia. El mío parecía prudente y
+  descansaba sobre una afirmación sobre el upstream que nunca probé. Peor: la
+  escribí como comentario en el código, o sea la hipótesis quedó documentada
+  como hecho verificado.
+- [cli-build] **Dos veces leí mal el JSON crudo y casi concluyo algo falso.**
+  Buscando las butacas en `order-get-map` obtuve `areas = 0` y estuve por
+  escribir que la orden vieja devolvía un mapa vacío. El control lo desmintió:
+  una orden **recién abierta** daba el mismo 0, así que el error era de mi
+  parser, no del upstream. Es la misma regla que ya está en `AGENTS.md`
+  ("un experimento que falla necesita un control que debería pasar") y la
+  apliqué recién en el segundo intento. La salida fue dejar de parsear a mano y
+  usar el CLI, que ya sabe leer ese shape.
+
 ### Ronda 26 (2026-07-28, el yak shaving: quedarse con lo que funciona)
 
 - [proceso] **Hunter cortó bien el alcance y los números lo respaldaban.** Tres

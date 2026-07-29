@@ -13,12 +13,21 @@ import { atomicWriteJson } from "./atomic-write.js";
  * En tres días de desarrollo el audit log registró 196 aperturas para 3 holds
  * confirmados.
  *
- * Verificado que una orden sirve para releer el mapa al menos 30 segundos
- * después de abrirla. La ventana se toma corta a propósito: el mapa cambia
- * cuando otros compran, y devolver butacas vendidas como libres es peor que
- * abrir una orden de más.
+ * Medido: una orden sirve para releer el mapa a los 30s, 120s, 300s, 600s y
+ * también ~50 minutos después. No se encontró el techo.
+ *
+ * Y lo que importa más que la duración: **el mapa que devuelve una orden vieja
+ * está actualizado**, no congelado. Una orden de 50 minutos y una recién abierta
+ * reportaron los mismos 172 libres de 250. El `transIdTemp` identifica la
+ * transacción, no una foto del inventario, así que cachearlo no arriesga mostrar
+ * butacas vendidas como libres. Esa era la razón por la que el TTL era de 60
+ * segundos, y estaba equivocada.
+ *
+ * 10 minutos entonces: cubre una sesión de trabajo entera sobre la misma
+ * función sin abrir una orden más, y sigue lejos del punto donde no tengo
+ * evidencia. El techo real no se midió; con datos, subirlo.
  */
-const TTL_MS = 60_000;
+const TTL_MS = 600_000;
 
 interface OrdenCacheada {
   transIdTemp: number;
