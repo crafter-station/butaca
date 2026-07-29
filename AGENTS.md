@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 24 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 25 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -180,6 +180,16 @@ revisa porque se lee como el caso raro.
 Y para descubrir la ruta verdadera: este sitio sirve sus 404 con **HTTP 200**, así
 que adivinar rutas es ruido. Inyectar la cookie de sesión y hacer el flujo real
 en el navegador cuesta menos que ocho hipótesis. Limpiar la sesión al terminar.
+
+### 9d. "La URL carga" no es "la URL continúa mi estado"
+
+Verifiqué la ruta de checkout **en la sesión donde había creado la orden**, que
+es el único contexto donde funciona. En un tab nuevo queda en skeleton para
+siempre: el carrito vive en sessionStorage más localStorage y no viaja en la URL
+ni en una cookie.
+
+Probá los links que emitís en un contexto limpio, que es lo que hace el usuario.
+Y cuando algo no se puede, el fix es corregir la promesa, no maquillar el link.
 
 ### 10. Antes de afirmar un número, correr el comando que lo prueba
 

@@ -2,7 +2,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { ApiError, fetchTheaters } from "../api.js";
 import { resolveFuncion } from "./butacas.js";
-import { linkCartelera, linkCheckout } from "../links.js";
+import { linkCartelera, linkPelicula } from "../links.js";
 import { fetchPrices, fetchSeatMap, holdSeats, openOrder } from "../api-auth.js";
 import type { HoldSeatEntry, PriceCategory, TicketListEntry } from "../api-auth.js";
 import { auditPending, auditResolve, newAuditId } from "../audit-log.js";
@@ -11,7 +11,7 @@ import { ok, printEnvelope, reportError } from "../format.js";
 import type { Flags } from "../format.js";
 import { findSeatByLabel, isAvailableStatus, parseSeatLabel, parseSeatMap } from "../seat-map.js";
 import type { Seat, SeatMap } from "../seat-map.js";
-import { amber, bold, dim, green } from "../style.js";
+import { amber, bold, dim, green, italic } from "../style.js";
 
 export interface ReservarOptions {
   sessionId: string;
@@ -360,14 +360,19 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
       throw err;
     }
 
-    // El upstream NO devuelve ninguna URL: verificado inspeccionando la
-    // respuesta cruda de order-set-seats, que trae 39 campos y ninguno es un
-    // link. El fallback anterior (`/checkout`) estaba inventado y **redirige al
-    // home** con ?shouldAuthenticate=true, así que el usuario terminaba en la
-    // portada después de reservar. La ruta real se obtuvo recorriendo el flujo
-    // autenticado en el navegador.
+    // NO existe un link que continúe esta orden en el navegador, y esto está
+    // verificado, no asumido: el upstream no devuelve ninguna URL (la respuesta
+    // de order-set-seats trae 39 campos, ninguno un link), y la página de compra
+    // del sitio lee la orden de `CNK_TICKET_PURCHASE_ST` (sessionStorage) más
+    // `CNK_TICKET_PURCHASE_LS_<guid>` (localStorage). Nada de eso viaja en la
+    // URL ni en una cookie, así que un tab nuevo abre con `tickets: []` y se
+    // queda en skeleton para siempre.
+    //
+    // Se emite igual el link de la película, pero anunciado por lo que es: el
+    // lugar donde volver a elegir, no la continuación de esta reserva. Prometer
+    // "completá el pago acá" era falso y hacía perder la butaca ya tomada.
     const funcion = await resolveFuncion(cinemaId, options.sessionId);
-    const checkoutUrl = funcion?.slug ? linkCheckout(funcion.slug) : linkCartelera(options.cine);
+    const checkoutUrl = funcion?.slug ? linkPelicula(funcion.slug, options.cine) : linkCartelera(options.cine);
     const payload = {
       transIdTemp,
       seats: options.asientos.map((label) => {
@@ -382,7 +387,13 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
     if (machineMode) {
       printEnvelope(ok(payload));
     } else {
-      process.stdout.write(`${green("✓")} Reservado. Completá el pago en:\n  ${bold(checkoutUrl)}\n`);
+      const asientos = options.asientos.length > 0 ? options.asientos.join(", ") : "la preasignada";
+      process.stdout.write(
+        `${green("✓")} Reservado: ${bold(asientos)} ${dim(`(orden ${transIdTemp})`)}\n` +
+          `${dim("El pago se hace en el sitio y esta orden no se puede continuar ahí:")}\n` +
+          `${dim("Cinemark guarda el carrito en el navegador, no en la cuenta.")}\n` +
+          `  ${bold(checkoutUrl)}  ${dim(italic("elegí de nuevo ahí para pagar"))}\n`,
+      );
     }
     return 0;
   } catch (err) {

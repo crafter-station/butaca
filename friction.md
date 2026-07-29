@@ -5,6 +5,39 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 25 (2026-07-28, la URL correcta tampoco alcanzaba)
+
+- [cli-build] **Encontré la ruta real y seguí prometiendo algo imposible.** La
+  ronda 24 cambió `/checkout` (inventado, redirige al home) por
+  `/pelicula/{slug}/compra-entradas/mejoratuexperiencia`, verificada recorriendo
+  el flujo. Hunter la abrió en un tab nuevo: **skeleton infinito y RESUMEN
+  vacío**.
+  La causa, medida en el navegador: el carrito vive en
+  `CNK_TICKET_PURCHASE_ST` (sessionStorage, un GUID) más
+  `CNK_TICKET_PURCHASE_LS_<guid>` (localStorage, con `tickets`, `seats`, `flux`).
+  **Nada de eso viaja en la URL ni en una cookie**, así que un tab nuevo abre con
+  `tickets: []` y la página no tiene qué renderizar. Es client-side puro.
+  **Regla:** "la URL carga" y "la URL continúa mi estado" son dos afirmaciones
+  distintas, y la primera no implica la segunda. Yo verifiqué que la página
+  respondía y que mostraba la orden **en la sesión donde la había creado**, que
+  es el peor lugar posible para verificar: es el único contexto donde funciona.
+  La prueba correcta es abrir la URL en un contexto limpio, que es justo lo que
+  el usuario hace.
+- [cli-build] **El fix honesto era corregir la promesa, no el link.** No hay
+  forma de continuar la orden desde el navegador, así que `reservar` ahora dice
+  qué reservó, con qué número de orden, y que **el sitio guarda el carrito en el
+  navegador, no en la cuenta**, mandando a la página de la película para elegir
+  de nuevo. Antes decía "Completá el pago en:" y esa frase era falsa: mandaba a
+  una pantalla que nunca cargaba y hacía perder la butaca ya tomada.
+- [cli-build] **Falsa alarma que casi documento (otra vez).** Grepeé las cookies
+  por `/order|trans/i` buscando dónde vivía la orden y dio positivo: era
+  `CNK_LOCATION`, que contiene "trans" adentro de otra palabra. Tercera vez en
+  este build que un match sin mirar el contexto casi se convierte en hallazgo.
+- [cli-build] **El test de `linkCheckout` seguía verde y ya no describía el
+  comportamiento.** El helper dejó de usarse en `reservar` y el test seguía
+  pasando, porque probaba la construcción del string, no su rol. Reescrito para
+  fijar que su uso es informativo, con la razón adentro.
+
 ### Ronda 24 (2026-07-28, el link de checkout era inventado)
 
 - [cli-build] **Un `??` con una URL escrita a mano sobrevivió hasta producción.**
