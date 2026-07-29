@@ -9,6 +9,55 @@ is the input that decides whether they graduate to stable.
 
 ## Entries
 
+### Hallazgos posteriores al recon (rondas 18-26 del build)
+
+Estos salieron construyendo el CLI, no durante el recon, y los cuatro corrigen a
+`surface-recon`. Se anotan acá porque el mecanismo de mejora de esa skill es este
+log, no un case.
+
+- [terrain B] **El sitio sirve sus 404 con HTTP 200.** Probé ocho rutas
+  candidatas de checkout: las ocho respondieron 200 sirviendo la página "esta
+  página no existe". `gates.md` ya avisa de esto **para endpoints** ("did you
+  parse the response body, or trust the status code?"), y la trampa fue que lo
+  leí como una regla sobre APIs. Vale igual o más para páginas HTML, donde un SPA
+  devuelve 200 para toda ruta y el 404 vive en el DOM. El gate debería decir
+  "endpoints **and pages**", porque la versión actual se lee como acotada a JSON.
+- [terrain B] **Adivinar rutas es ruido cuando el 404 da 200; inyectar la sesión
+  cuesta menos.** Después de ocho hipótesis fallidas, la ruta real
+  (`/pelicula/{slug}/compra-entradas/mejoratuexperiencia`) apareció al primer
+  intento poniendo la cookie de sesión en el navegador y haciendo el clic real.
+  El playbook de terreno B no menciona la inyección de cookies como técnica de
+  descubrimiento de rutas, y es la que convierte una lista de descartes en una
+  respuesta. Corolario de higiene: limpiar la sesión al terminar.
+- [terrain C] **Una URL puede cargar y aun así no continuar tu estado.** Verifiqué
+  la ruta de checkout **en la misma sesión donde había creado la orden**, que es
+  el único contexto donde funciona, y la reporté como buena. En un tab limpio
+  queda en skeleton para siempre: el carrito vive en `sessionStorage`
+  (`CNK_TICKET_PURCHASE_ST`) más `localStorage`
+  (`CNK_TICKET_PURCHASE_LS_<guid>`), y nada de eso viaja en la URL ni en cookie.
+  **Gate propuesto:** todo link que el reporte entregue como accionable se abre en
+  un contexto limpio antes de escribirlo. "Carga" y "continúa mi estado" son dos
+  afirmaciones distintas y el recon solo puede afirmar la segunda si la probó sin
+  su propio estado encima.
+- [terrain B] **Estado del cliente: mirar `sessionStorage` y `localStorage`, no
+  solo cookies.** Todo el carrito de este target vive ahí, y el playbook habla de
+  cookies y de tráfico. Dos claves (`CNK_TICKET_PURCHASE_ST` y su `LS_<guid>`)
+  explicaban por qué ningún link podía reanudar una compra, y salieron en un solo
+  `eval` volcando las dos superficies. Es barato y responde una pregunta que el
+  tráfico no contesta.
+- [agent-browser] **Un modal abierto vacía el árbol de accesibilidad entero.**
+  `snapshot` devolvía solo el banner de cookies, y lo leí como "la página no
+  tiene contenido". Cerrar el modal es precondición de cualquier lectura
+  estructural, y el síntoma (árbol de tres nodos) no se parece a un bloqueo.
+- [gate] **Tres veces un instrumento indirecto dijo "no existe" y el screenshot
+  mostró el elemento en pantalla**: el panel de login del recon original, los
+  horarios de la cartelera (el texto es `19:20hs` y mi selector buscaba `19:20`),
+  y el botón de comprar. La skill tiene gates sobre dominios y sobre status
+  codes, y ninguno sobre esto.
+  **Gate propuesto:** antes de escribir un veredicto negativo sobre una UI,
+  capturar la pantalla y mirarla. Un veredicto negativo es el hallazgo más caro
+  de equivocar, porque cierra la puerta a construir la capacidad.
+
 ### La pieza estructural que falta en la skill: un target tiene DOS superficies
 
 Esto es lo que ordena todos los hallazgos de abajo, y es un cambio de forma en

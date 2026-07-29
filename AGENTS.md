@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 26 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 25 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
