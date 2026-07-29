@@ -3,7 +3,8 @@
 Contrato de los comandos que necesitan cuenta. Escrito antes del código, per
 `cli-build` Phase 2. Complementa `CONTRACT.md`, que cubre la superficie anónima.
 
-Origen del mapeo: `recon/purchase-flow.md` y `recon/auth-surface.md`.
+Origen del mapeo: recon del flujo de compra y de la superficie de auth,
+verificados contra la API real. Las notas del recon no se publican.
 
 ## Qué cambia respecto de la mitad anónima
 
@@ -88,7 +89,7 @@ entorno. Si no hay ninguno de los dos y no hay TTY, falla con
 
 ## Flujo de login
 
-Verificado en `recon/auth-surface.md`:
+Verificado contra la API real:
 
 ```
 GET  /api/auth/csrf                  -> csrfToken
@@ -157,8 +158,8 @@ POST /order-tickets
 {
   "sessionId": 159037,
   "cinemaId": 733,                    // FALTABA: sin esto, 500 error_order_new
-  "salesChannelToken": "...",         // FALTABA: hardcodeado, ver recon/report.md
-  "memberId": 11540963,               // FALTABA: de la sesión, ver Credenciales
+  "salesChannelToken": "...",         // FALTABA: hardcodeado, sale del bundle del sitio
+  "memberId": 10000001,               // FALTABA: de la sesión, ver Credenciales
   "ticketList": [{
     "areaCategoryCode": "",
     "hOCode": "1697",                 // ojo: la respuesta de get-prices trae hoCode (h minúscula)

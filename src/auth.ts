@@ -111,7 +111,7 @@ export function extractSessionCookie(setCookieHeader: string | null): string | n
 }
 
 /**
- * Secuencia verificada en recon/auth-surface.md: CSRF primero, siempre, y
+ * Secuencia verificada contra la API real: CSRF primero, siempre, y
  * recién después el POST de callback. NextAuth rechaza el login sin el token
  * de la primera llamada.
  */

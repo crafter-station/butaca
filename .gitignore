@@ -12,3 +12,11 @@ dist/
 .agents/
 .claude/
 skills-lock.json
+
+# Notas internas del build: recon del target, fricción y cases.
+# No van al repo público: describen un servicio de terceros con detalle
+# (endpoints, ausencia de rate limit, headers sin validar) que es material de
+# trabajo, no documentación de este CLI. Copia en ../butaca-internal/.
+recon/
+cases/
+friction.md

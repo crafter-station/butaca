@@ -5,7 +5,7 @@ const TIMEOUT_MS = 15000;
 
 /**
  * Hardcodeado porque sale del env blob del sitio (`CNK_PUBLIC_ENVS`), no de
- * ningún endpoint que el CLI pueda consultar. Verificado en recon/report.md.
+ * ningún endpoint que el CLI pueda consultar. Verificado contra la API real.
  */
 export const SALES_CHANNEL_TOKEN_TICKET_CANDY =
   "d792f0f7def937524c47b6e5036b70085302d9df18a7dfc48478ce3d2de4bef9";

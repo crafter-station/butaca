@@ -1,12 +1,41 @@
 {
   "name": "butaca",
   "version": "0.1.0",
-  "description": "CLI de carteleras y funciones de Cinemark Argentina",
+  "description": "Cartelera, funciones y mapa de butacas de Cinemark Argentina desde la terminal. Agent-first: --json en todo, schema introspectable.",
+  "license": "MIT",
+  "author": "Railly Hugo",
+  "homepage": "https://github.com/crafter-station/butaca#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crafter-station/butaca.git"
+  },
+  "bugs": {
+    "url": "https://github.com/crafter-station/butaca/issues"
+  },
+  "keywords": [
+    "cli",
+    "cinemark",
+    "cine",
+    "argentina",
+    "butacas",
+    "cartelera",
+    "agent-first",
+    "llm",
+    "json",
+    "seat-map"
+  ],
   "type": "module",
   "bin": {
     "butaca": "./dist/cli.js"
   },
-  "files": ["dist", "skills", "README.md", "CONTRACT.md"],
+  "files": [
+    "dist",
+    "skills",
+    "README.md",
+    "CONTRACT.md",
+    "CONTRACT-AUTH.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=20"
   },

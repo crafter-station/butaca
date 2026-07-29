@@ -4,7 +4,9 @@ Reglas para cualquier agente que toque este repo. Salieron de 27 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
-`friction.md` es el registro crudo y crece; este archivo es lo que quedó.
+El registro crudo de fricción y los cases viven fuera del repo público
+(describen el servicio de un tercero con más detalle del que corresponde
+publicar). Este archivo es lo que quedó de ellos.
 
 ## Antes de tocar nada
 
@@ -245,7 +247,7 @@ principal con la razón dicha. Retirar no es borrar.
 
 ## Convenciones
 
-- Español en comentarios, mensajes de usuario y commits. Inglés en `cases/`.
+- Español en comentarios, mensajes de usuario y commits. Inglés en los cases.
 - **Sin em dashes** en ningún texto, código o commit.
 - Comentarios solo donde el "por qué" no es obvio del código. La mayoría de los
   que hay nombran un defecto real y su verificación; sin eso, no van.
@@ -256,9 +258,11 @@ principal con la razón dicha. Retirar no es borrar.
 
 ## Al terminar una ronda
 
-1. Anotar la fricción en `friction.md` en el momento, no al final.
-2. Si el hallazgo generaliza más allá de este CLI, va a
-   `cases/human-output.md` (salida para humanos) o `cases/butaca.md` (el resto).
+1. Anotar la fricción en el momento, no al final, en las notas internas del
+   build (fuera de este repo).
+2. Si el hallazgo generaliza más allá de este CLI, va al case correspondiente.
 3. Si es chequeable por código, escribir el test **y verificar que falla** al
    romper la cosa a propósito. Un test de regresión que nunca se vio fallar no
    prueba que detecte nada.
+4. Si es una regla que un agente debe respetar acá, va a este archivo, con el
+   defecto que la originó.

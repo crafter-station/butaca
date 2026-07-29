@@ -51,7 +51,7 @@ describe("butaca auth status: shape JSON", () => {
   it("con sesión activa, devuelve email y expiresAt", () => {
     saveConfig({
       email: "hunter@example.invalid",
-      session: { cookie: "next-auth.session-token=abc", memberSessionId: "msid-de-prueba", memberId: "11540963", expiresAt: "2099-01-01T00:00:00.000Z" },
+      session: { cookie: "next-auth.session-token=abc", memberSessionId: "msid-de-prueba", memberId: "10000001", expiresAt: "2099-01-01T00:00:00.000Z" },
     });
 
     const code = runAuthStatus(true);
@@ -67,7 +67,7 @@ describe("butaca auth status: shape JSON", () => {
   it("con sesión vencida, devuelve AUTH_EXPIRED distinto de AUTH_REQUIRED", () => {
     saveConfig({
       email: "hunter@example.invalid",
-      session: { cookie: "next-auth.session-token=abc", memberSessionId: "msid-de-prueba", memberId: "11540963", expiresAt: "2000-01-01T00:00:00.000Z" },
+      session: { cookie: "next-auth.session-token=abc", memberSessionId: "msid-de-prueba", memberId: "10000001", expiresAt: "2000-01-01T00:00:00.000Z" },
     });
 
     const code = runAuthStatus(true);
@@ -82,7 +82,7 @@ describe("butaca auth logout: shape JSON", () => {
   it("borra la sesión y confirma con loggedOut", () => {
     saveConfig({
       email: "hunter@example.invalid",
-      session: { cookie: "next-auth.session-token=abc", memberSessionId: "msid-de-prueba", memberId: "11540963", expiresAt: "2099-01-01T00:00:00.000Z" },
+      session: { cookie: "next-auth.session-token=abc", memberSessionId: "msid-de-prueba", memberId: "10000001", expiresAt: "2099-01-01T00:00:00.000Z" },
     });
 
     const code = runAuthLogout(true);
