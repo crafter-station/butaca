@@ -5,6 +5,39 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 24 (2026-07-28, el link de checkout era inventado)
+
+- [cli-build] **Un `??` con una URL escrita a mano sobrevivió hasta producción.**
+  `held.Data?.checkoutUrl ?? "https://www.cinemark.com.ar/checkout"`. El lado
+  izquierdo **nunca** existió: verificado sobre la respuesta cruda de
+  `order-set-seats`, que trae 39 campos y ninguno es un link. Así que el CLI
+  siempre emitía el fallback, y esa ruta **redirige al home** con
+  `?shouldAuthenticate=true`. Hunter reservó de verdad, hizo clic y terminó en la
+  portada.
+  **Regla:** un fallback para un campo opcional del upstream es una hipótesis
+  sobre ese upstream, y hay que verificar las dos ramas. Si el campo nunca viene,
+  el fallback **es** el comportamiento, no el respaldo, y nadie lo revisa porque
+  se lee como el caso raro. El chequeo cuesta un `curl` y mirar las claves.
+- [surface-recon] **La URL real solo salió recorriendo el flujo autenticado.**
+  Probé ocho rutas adivinadas (`/compra`, `/checkout`, `/asientos/<id>`, etc.):
+  todas responden **200 sirviendo su página de "no existe"**, así que el status
+  no distingue nada y hay que mirar el contenido. La ruta verdadera es
+  `/pelicula/{slug}/compra-entradas/mejoratuexperiencia`, y apareció inyectando
+  la cookie de sesión en el navegador y haciendo el clic real.
+  **Regla:** cuando un sitio sirve 404 con 200, adivinar rutas es ruido puro.
+  Inyectar la sesión y hacer el flujo cuesta menos que ocho hipótesis, y da la
+  respuesta en vez de una lista de descartes.
+- [surface-recon] **El slug del link es decorativo.** Pedir
+  `/pelicula/toy-story-5/compra-entradas/...` muestra la orden de La Odisea: la
+  orden vive en la sesión del servidor, no en la URL. Se pasa el slug correcto
+  igual, porque es lo que el sitio pone y hace legible el link, pero **no es lo
+  que selecciona la orden**. Confundir eso habría llevado a "armar" links de
+  checkout para funciones arbitrarias, que es la trampa de los 404-con-200 otra
+  vez.
+- [proceso] **La sesión inyectada se limpió al terminar.** `cookies clear` más
+  cerrar el navegador: la cookie de NextAuth vale 24h y no queda en un perfil
+  suelto.
+
 ### Ronda 23 (2026-07-28, los errores sin color, y el dist stale)
 
 - [cli-build] **`shouldColor()` preguntaba por el stream equivocado.** Miraba

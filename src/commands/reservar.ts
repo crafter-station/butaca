@@ -1,6 +1,8 @@
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { ApiError, fetchTheaters } from "../api.js";
+import { resolveFuncion } from "./butacas.js";
+import { linkCartelera, linkCheckout } from "../links.js";
 import { fetchPrices, fetchSeatMap, holdSeats, openOrder } from "../api-auth.js";
 import type { HoldSeatEntry, PriceCategory, TicketListEntry } from "../api-auth.js";
 import { auditPending, auditResolve, newAuditId } from "../audit-log.js";
@@ -358,7 +360,14 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
       throw err;
     }
 
-    const checkoutUrl = held.Data?.checkoutUrl ?? "https://www.cinemark.com.ar/checkout";
+    // El upstream NO devuelve ninguna URL: verificado inspeccionando la
+    // respuesta cruda de order-set-seats, que trae 39 campos y ninguno es un
+    // link. El fallback anterior (`/checkout`) estaba inventado y **redirige al
+    // home** con ?shouldAuthenticate=true, así que el usuario terminaba en la
+    // portada después de reservar. La ruta real se obtuvo recorriendo el flujo
+    // autenticado en el navegador.
+    const funcion = await resolveFuncion(cinemaId, options.sessionId);
+    const checkoutUrl = funcion?.slug ? linkCheckout(funcion.slug) : linkCartelera(options.cine);
     const payload = {
       transIdTemp,
       seats: options.asientos.map((label) => {

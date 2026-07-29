@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 23 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 24 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -9,7 +9,7 @@ originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 ## Antes de tocar nada
 
 ```bash
-bun test          # 188 tests, sin red
+bun test          # 190 tests, sin red
 npx tsc --noEmit  # src
 npx tsc --noEmit -p tsconfig.test.json
 npx biome check --write .
@@ -167,6 +167,19 @@ caminos que la API permite, no solo el que el CLI usa hoy.
 Corolario: **un experimento que falla necesita un control que debería pasar.** Mi
 primer curl falló sobre la asignada y casi lo leo como confirmación; probarlo
 con una butaca libre mostró que fallaba igual, o sea el error era del payload.
+
+### 9c. Un fallback para un campo opcional es una hipótesis, verificá las dos ramas
+
+`held.Data?.checkoutUrl ?? "https://.../checkout"`: el lado izquierdo nunca
+existió, así que el fallback era el comportamiento real, y esa ruta redirigía al
+home. El usuario reservaba y terminaba en la portada.
+
+Si el campo nunca viene, el fallback **es** el camino, no el respaldo, y nadie lo
+revisa porque se lee como el caso raro.
+
+Y para descubrir la ruta verdadera: este sitio sirve sus 404 con **HTTP 200**, así
+que adivinar rutas es ruido. Inyectar la cookie de sesión y hacer el flujo real
+en el navegador cuesta menos que ocho hipótesis. Limpiar la sesión al terminar.
 
 ### 10. Antes de afirmar un número, correr el comando que lo prueba
 

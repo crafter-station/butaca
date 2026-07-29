@@ -55,7 +55,7 @@ export function buildTicketList(categories: PriceCategory[]): TicketListEntry[] 
  * contra los showtimes del cine. Si falla, el comando sigue: el link es un
  * extra, no el resultado.
  */
-interface FuncionInfo {
+export interface FuncionInfo {
   slug: string | null;
   pelicula: string;
   sala: string;
@@ -70,7 +70,7 @@ interface FuncionInfo {
  * sessionId contra los showtimes del cine. Si falla, el comando sigue: el mapa
  * es el resultado, esto es contexto.
  */
-async function resolveFuncion(cinemaId: string, sessionId: string): Promise<FuncionInfo | null> {
+export async function resolveFuncion(cinemaId: string, sessionId: string): Promise<FuncionInfo | null> {
   try {
     const showtimes = await fetchShowtimesByTheater(cinemaId);
     const match = showtimes.find((s) => s.sessionId === sessionId);
