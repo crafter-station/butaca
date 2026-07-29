@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Reglas para cualquier agente que toque este repo. Salieron de 25 rondas de
+Reglas para cualquier agente que toque este repo. Salieron de 26 rondas de
 fricción sobre este CLI, no de un template: cada una nombra el defecto que la
 originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 
@@ -9,7 +9,7 @@ originó, porque una regla sin su defecto se lee como preferencia y se descarta.
 ## Antes de tocar nada
 
 ```bash
-bun test          # 190 tests, sin red
+bun test          # 194 tests, sin red
 npx tsc --noEmit  # src
 npx tsc --noEmit -p tsconfig.test.json
 npx biome check --write .
@@ -204,6 +204,17 @@ Cuando el upstream falla, reproducir sin sesión. Una falla que persiste sin
 identidad no es sobre tu identidad. Acá: lectura pública en 200, `order-tickets`
 anónimo en 401 antes del mensaje de suspensión, y el flujo en navegador limpio
 terminando en el login normal.
+
+### 12. Un flujo que no puede terminar no debería tomar inventario
+
+Tres días de desarrollo dejaron 196 aperturas de orden para 3 holds que nadie iba
+a pagar. Ver el mapa **exige** abrir una orden (verificado: sin transIdTemp da
+500, con uno viejo también), así que la escritura es el precio de la consulta.
+Lo controlable es cuántas veces se paga: el caché de 60s bajó tres corridas de
+tres transacciones a una.
+
+Y cuando una capacidad funciona pero su resultado no sirve, se retira del camino
+principal con la razón dicha. Retirar no es borrar.
 
 ## Límites que no se cruzan
 

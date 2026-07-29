@@ -52,9 +52,10 @@ ${uso("butaca auth status", "", "¿hay sesión? ¿de quién? ¿vence cuándo?")}
 ${uso("butaca auth logout", "", "borra sesión y credenciales")}
 ${uso("butaca butacas", "<sessionId> --cine <slug>", "dibuja el mapa de asientos")}
 ${uso("", "[--dry-run]", "no abre orden, explica qué haría")}
-${uso("butaca reservar", "<sessionId> --cine <slug>", "hold real de butacas")}
-${uso("", "--asientos 7-12,7-13 [--dry-run] [--yes]")}
-${uso("", "--asignada [--orden <id>]  la butaca ámbar del mapa")}
+
+${dim("  reservar existe y toma inventario real, pero el pago no se puede")}
+${dim("  completar desde acá: Cinemark guarda el carrito en el navegador, no")}
+${dim("  en la cuenta. Elegí en el sitio. Detalle: butaca reservar --help")}
 
 ${bold(underline("Opciones"))}
 ${opcion("--json", "fuerza salida JSON aunque haya TTY")}

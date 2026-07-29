@@ -5,6 +5,7 @@ import {
   parseSeatLabel,
   parseSeatMap,
   renderSeatMap,
+  sugerirButacas,
 } from "../src/seat-map.js";
 import type { RawSeatMapResponse } from "../src/api-auth.js";
 import fixture from "./fixtures/seat-map.json" with { type: "json" };
@@ -286,5 +287,56 @@ describe("leyenda del estado 5 (regresión)", () => {
     // Nombra el flag que la toma: es el único camino que la reserva, porque el
     // número que se ve pertenece a la orden que dibujó este mapa.
     expect(drawing).toContain("--asignada");
+  });
+});
+
+describe("sugerirButacas", () => {
+  const sala = (filas: number, cols: number, libres: Array<[number, number]>) =>
+    ({
+      screen: { rows: filas, columns: cols },
+      summary: { total: 0, available: 0, accessible: 0, broken: 0 },
+      areas: [
+        {
+          code: "1",
+          number: "1",
+          seats: libres.map(([r, c]) => ({
+            row: String(r),
+            number: String(c),
+            gridRow: String(r),
+            gridNumber: String(c),
+            status: "DISPONIBLE" as const,
+            statusId: 0,
+          })),
+        },
+      ],
+    }) as unknown as Parameters<typeof sugerirButacas>[0];
+
+  it("prefiere el eje central sobre la butaca contra la pared", () => {
+    const out = sugerirButacas(sala(10, 10, [[6, 1], [6, 5]]));
+    expect(out[0]?.label).toBe("6-5");
+  });
+
+  it("prefiere el fondo medio sobre la primera fila", () => {
+    const out = sugerirButacas(sala(10, 10, [[1, 5], [7, 5]]));
+    expect(out[0]?.label).toBe("7-5");
+  });
+
+  // Las de accesibilidad son de alguien que las necesita: ofrecerlas como "la
+  // mejor" a cualquiera es un error de criterio, no de cálculo.
+  it("nunca sugiere butacas de accesibilidad ni ocupadas", () => {
+    const conEstados = sala(10, 10, [[6, 5]]);
+    const area = conEstados.areas[0];
+    if (!area) throw new Error("fixture sin área");
+    area.seats.push(
+      { row: "6", number: "6", gridRow: "6", gridNumber: "6", status: "SILLA_DE_RUEDAS", statusId: 4 },
+      { row: "6", number: "7", gridRow: "6", gridNumber: "7", status: "NO_DISPONIBLE", statusId: 1 },
+    );
+    const labels = sugerirButacas(conEstados).map((s) => s.label);
+    expect(labels).toEqual(["6-5"]);
+  });
+
+  it("devuelve el label listo para pasar a --asientos", () => {
+    const out = sugerirButacas(sala(10, 10, [[6, 5]]));
+    expect(parseSeatLabel(out[0]?.label ?? "")).toEqual({ row: "6", number: "5" });
   });
 });

@@ -2,10 +2,11 @@ import { ApiError, fetchMovies, fetchShowtimesByTheater, fetchTheaters } from ".
 import { fetchPrices, openOrder, fetchSeatMap } from "../api-auth.js";
 import type { PriceCategory, TicketListEntry } from "../api-auth.js";
 import { auditPending, auditResolve, newAuditId } from "../audit-log.js";
+import { guardarOrden, olvidarOrden, ordenVigente } from "../order-cache.js";
 import { currentSession } from "../auth.js";
 import { ok, printEnvelope, reportError } from "../format.js";
 import type { Flags } from "../format.js";
-import { parseSeatMap, renderSeatMap } from "../seat-map.js";
+import { parseSeatMap, renderSeatMap, sugerirButacas } from "../seat-map.js";
 import type { SeatMap } from "../seat-map.js";
 import { toFuncion } from "./funciones.js";
 import { linkCorto, linkPelicula, openUrl } from "../links.js";
@@ -189,29 +190,54 @@ export async function runButacas(options: ButacasOptions, flags: Flags, machineM
     const ticketList = buildTicketList(prices);
 
     const auditId = newAuditId();
-    auditPending({
-      id: auditId,
-      kind: "order.open",
-      command: `butaca butacas ${options.sessionId} --cine ${options.cine ?? ""}`,
-      meta: { sessionId: options.sessionId, cinemaId },
-    });
-
+    // Una orden abierta hace menos de un minuto sirve para releer el mapa, así
+    // que consultar dos veces la misma función no cuesta dos transacciones. Sin
+    // esto, tres días de desarrollo dejaron 196 aperturas para 3 holds reales.
+    const cacheada = ordenVigente(cinemaId, options.sessionId);
     let transIdTemp: number;
+
+    if (cacheada !== null) {
+      transIdTemp = cacheada;
+    } else {
+      auditPending({
+        id: auditId,
+        kind: "order.open",
+        command: `butaca butacas ${options.sessionId} --cine ${options.cine ?? ""}`,
+        meta: { sessionId: options.sessionId, cinemaId },
+      });
+      try {
+        const opened = await openOrder(
+          { sessionId: options.sessionId, cinemaId, memberId: session.session.memberId, ticketList },
+          session.session.memberSessionId,
+        );
+        transIdTemp = opened.transIdTemp;
+        guardarOrden(cinemaId, options.sessionId, transIdTemp);
+        auditResolve(auditId, "order.open", "butaca butacas", "ok", { transIdTemp });
+      } catch (err) {
+        auditResolve(auditId, "order.open", "butaca butacas", "error", {
+          message: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
+      }
+    }
+
+    let rawMap: Awaited<ReturnType<typeof fetchSeatMap>>;
     try {
+      rawMap = await fetchSeatMap(cinemaId, transIdTemp, options.sessionId, session.session.memberSessionId);
+    } catch (err) {
+      // Si la orden cacheada murió antes de tiempo, se olvida y se reabre una
+      // sola vez. Sin esto, un caché vencido dejaría el comando inservible
+      // hasta que expire solo.
+      if (cacheada === null) throw err;
+      olvidarOrden(cinemaId, options.sessionId);
       const opened = await openOrder(
         { sessionId: options.sessionId, cinemaId, memberId: session.session.memberId, ticketList },
         session.session.memberSessionId,
       );
       transIdTemp = opened.transIdTemp;
-      auditResolve(auditId, "order.open", "butaca butacas", "ok", { transIdTemp });
-    } catch (err) {
-      auditResolve(auditId, "order.open", "butaca butacas", "error", {
-        message: err instanceof Error ? err.message : String(err),
-      });
-      throw err;
+      guardarOrden(cinemaId, options.sessionId, transIdTemp);
+      rawMap = await fetchSeatMap(cinemaId, transIdTemp, options.sessionId, session.session.memberSessionId);
     }
-
-    const rawMap = await fetchSeatMap(cinemaId, transIdTemp, options.sessionId, session.session.memberSessionId);
     const seatMap = parseSeatMap(rawMap);
 
     const funcion = await resolveFuncion(cinemaId, options.sessionId);
@@ -234,6 +260,10 @@ export async function runButacas(options: ButacasOptions, flags: Flags, machineM
       screen: seatMap.screen,
       areas: seatMap.areas,
       summary: seatMap.summary,
+      // Ranking listo para consumir: el cliente recomienda sin re-derivar la
+      // geometría de la sala desde gridRow/gridNumber. `label` se pasa tal cual
+      // a --asientos.
+      sugeridas: sugerirButacas(seatMap),
       // No hay deep link a la orden: esto lleva a la peli con el cine elegido,
       // que es lo más cerca que se puede llegar. Ver el comentario de abajo.
       siteUrl,

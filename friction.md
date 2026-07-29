@@ -5,6 +5,38 @@ Opened before Phase 1, per the skill.
 
 ## Entries
 
+### Ronda 26 (2026-07-28, el yak shaving: quedarse con lo que funciona)
+
+- [proceso] **Hunter cortó bien el alcance y los números lo respaldaban.** Tres
+  días de desarrollo dejaron **196 aperturas de orden** en el sistema de Cinemark
+  para **3 holds confirmados** que nadie va a pagar, y la sala de prueba pasó de
+  198 a 172 libres. Un flujo que no puede terminar la compra no debería tomar
+  inventario: ese es el argumento, no la elegancia.
+- [cli-build] **El caché de órdenes ataca la causa, no el síntoma.** Verificado
+  que `order-get-map` sin `transIdTemp` responde 500, y con el id de una orden
+  vieja también, o sea **la escritura es el precio real de la consulta**. Lo que
+  sí era nuestro es cuántas veces se paga: una orden sirve para releer el mapa al
+  menos 120 segundos después (medido). Con caché de 60s, tres corridas seguidas
+  de `butaca butacas` sobre la misma función pasaron de tres transacciones a
+  **una**. TTL corto a propósito: el mapa cambia cuando otros compran, y devolver
+  butacas vendidas como libres es peor que abrir una orden de más.
+- [cli-build] **`sugeridas` en el JSON: lo que el LLM necesitaba y no tenía.** El
+  payload traía `gridRow`/`gridNumber` crudos, así que recomendar exigía
+  re-derivar la geometría de la sala. Ahora expone un ranking con `label` listo
+  para `--asientos`, más `distanciaPantalla` y `desviacionCentro` normalizados.
+  **No incluye las de accesibilidad** (estados 3 y 4): son butacas de alguien que
+  las necesita, y ofrecerlas como "la mejor" a cualquiera es un error de criterio,
+  no de cálculo. Ese filtro tiene su test.
+- [cli-build] **`reservar` sale del help principal sin borrarse.** Funciona, toma
+  inventario real, y su resultado no se puede pagar. Queda accesible con la razón
+  dicha en el lugar donde alguien la buscaría, en vez de listado como un comando
+  más al lado de los que sí cierran. **Retirar del camino principal no es lo
+  mismo que borrar**, y acá la diferencia importa: la capacidad es un hallazgo
+  verificado del recon.
+  Cuesta reconocer que `--asignada` y `--orden`, dos rondas de trabajo, resuelven
+  un problema que este rediseño elimina. Siguen funcionando; simplemente ya no
+  son el camino que el CLI recomienda.
+
 ### Ronda 25 (2026-07-28, la URL correcta tampoco alcanzaba)
 
 - [cli-build] **Encontré la ruta real y seguí prometiendo algo imposible.** La

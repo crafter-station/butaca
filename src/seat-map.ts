@@ -88,6 +88,66 @@ export interface Seat {
   statusId: number;
 }
 
+export interface SeatSugerida {
+  row: string;
+  number: string;
+  /** Etiqueta lista para pasar a --asientos. */
+  label: string;
+  /** 0 = pegada a la pantalla, 1 = última fila. */
+  distanciaPantalla: number;
+  /** 0 = en el eje central de la sala, 1 = contra la pared. */
+  desviacionCentro: number;
+  /** 0 a 1, mayor es mejor. Centro de sala y eje central. */
+  score: number;
+}
+
+/**
+ * Ranking de butacas libres para que un cliente (agente o humano) recomiende sin
+ * re-derivar la geometría de la sala desde las coordenadas de grilla.
+ *
+ * El criterio es el consenso de proyección: la mejor butaca está sobre el eje
+ * central y en el tercio medio-trasero de la sala, no adelante. Se penaliza la
+ * distancia al centro horizontal y la distancia a esa banda vertical.
+ *
+ * No incluye accesibilidad (estados 3 y 4): son butacas de alguien que las
+ * necesita, y ofrecerlas como "la mejor" a cualquiera es un error de criterio,
+ * no de cálculo.
+ */
+export function sugerirButacas(seatMap: SeatMap, limite = 5): SeatSugerida[] {
+  const { rows, columns } = seatMap.screen;
+  if (rows <= 0 || columns <= 0) return [];
+
+  const ejeCentral = (columns + 1) / 2;
+  // Óptimo en el 65 por ciento del fondo: ni la primera fila ni la última.
+  const filaIdeal = rows * 0.65;
+
+  return seatMap.areas
+    .flatMap((a) => a.seats)
+    .filter((s) => s.statusId === 0)
+    .map((s) => {
+      const fila = Number(s.gridRow);
+      const col = Number(s.gridNumber);
+      if (!Number.isFinite(fila) || !Number.isFinite(col)) return null;
+
+      const desviacionCentro = Math.abs(col - ejeCentral) / (columns / 2);
+      const distanciaPantalla = rows > 1 ? (fila - 1) / (rows - 1) : 0;
+      const penalFila = Math.abs(fila - filaIdeal) / rows;
+      const score = Math.max(0, 1 - (desviacionCentro * 0.6 + penalFila * 0.4));
+
+      return {
+        row: s.row,
+        number: s.number,
+        label: `${s.row}-${s.number}`,
+        distanciaPantalla: Math.round(distanciaPantalla * 100) / 100,
+        desviacionCentro: Math.round(desviacionCentro * 100) / 100,
+        score: Math.round(score * 100) / 100,
+      };
+    })
+    .filter((s): s is SeatSugerida => s !== null)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limite);
+}
+
 export interface SeatArea {
   code: string;
   number: string;
