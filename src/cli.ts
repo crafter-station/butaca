@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { ApiError, setNoCache } from "./api.js";
 import { ArgParseError, isKnownCommand, knownCommands, parseArgs } from "./args.js";
+import { runCadenas } from "./commands/cadenas.js";
+import { runConfig } from "./commands/config.js";
+import { cineEfectivo } from "./prefs.js";
 import type { ParsedArgs } from "./args.js";
 import { runAuthLogin, runAuthLogout, runAuthStatus } from "./commands/auth.js";
 import { runButacas } from "./commands/butacas.js";
@@ -45,6 +48,8 @@ ${uso("butaca estrenos <peli>", "[--cine <slug>]", "un estreno, con ventas")}
 ${uso("butaca estrenos --peli <slug>", "", "idem, con el flag del resto")}
 ${uso("butaca <cine-slug>", "", 'atajo de "funciones --cine"')}
 ${uso("butaca schema", "[comando]", "shapes JSON, para agentes")}
+${uso("butaca cadenas", "", "qué cadenas de cine soporta")}
+${uso("butaca config set", "cine <slug>", "tu cine por defecto, deja de repetir --cine")}
 
 ${bold(underline("Cuenta (requiere sesión)"))}
 ${uso("butaca auth login", "[--email <e>]", "guarda credenciales, abre sesión")}
@@ -187,15 +192,26 @@ async function main(): Promise<number> {
     return 1;
   }
 
+  // El flag gana, después la variable de entorno, después lo guardado en
+  // `butaca config set cine`. Sin esto había que repetir --cine en cada llamada,
+  // que es la fricción diaria más obvia del CLI.
+  const cine = cineEfectivo(args.cine);
+
   switch (command) {
+    case "cadenas":
+      return runCadenas(machineMode);
+
+    case "config":
+      return runConfig(args.positional[0] ?? null, args.positional[1] ?? null, args.positional[2] ?? null, machineMode);
+
     case "cines":
       return runCines(flags, machineMode);
 
     case "cartelera":
-      return runCartelera({ cine: args.cine }, flags, machineMode);
+      return runCartelera({ cine: cine }, flags, machineMode);
 
     case "funciones": {
-      if (!args.cine) {
+      if (!cine) {
         return reportError(
           machineMode,
           new ApiError(
@@ -209,7 +225,7 @@ async function main(): Promise<number> {
         const fecha = validateFecha(args.fecha);
         return await runFunciones(
           {
-            cine: args.cine,
+            cine: cine,
             peli: args.peli,
             fecha,
             formato: args.formato,
@@ -233,7 +249,7 @@ async function main(): Promise<number> {
       // imprime `--peli <slug>` en cada tarjeta, así que tiene que funcionar
       // pegado tal cual. El posicional gana si vienen los dos.
       return runEstrenos(
-        { cine: args.cine, busqueda: args.positional[0] ?? args.peli },
+        { cine: cine, busqueda: args.positional[0] ?? args.peli },
         flags,
         machineMode,
       );
@@ -270,7 +286,7 @@ async function main(): Promise<number> {
           new ApiError("BAD_INPUT", "butacas necesita un sessionId", "Ejemplo: butaca butacas 159037 --cine palermo"),
         );
       }
-      return runButacas({ sessionId, cine: args.cine, dryRun: args.dryRun }, flags, machineMode);
+      return runButacas({ sessionId, cine: cine, dryRun: args.dryRun }, flags, machineMode);
     }
 
     case "reservar": {
@@ -288,7 +304,7 @@ async function main(): Promise<number> {
       return runReservar(
         {
           sessionId,
-          cine: args.cine,
+          cine: cine,
           asientos: args.asientos ?? [],
           asignada: args.asignada,
           orden: args.orden,

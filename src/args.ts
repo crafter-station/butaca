@@ -36,6 +36,8 @@ const KNOWN_COMMANDS = [
   "auth",
   "butacas",
   "reservar",
+  "cadenas",
+  "config",
 ];
 
 export class ArgParseError extends Error {}

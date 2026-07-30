@@ -114,6 +114,30 @@ export const SCHEMAS: Record<string, unknown> = {
     notes:
       "La contraseña nunca toca el disco: va al keychain de macOS, o a BUTACA_PASSWORD si no hay keychain. Sin TTY y sin las variables de entorno, falla con AUTH_REQUIRED en vez de colgarse pidiendo input.",
   },
+  cadenas: {
+    version: SCHEMA_VERSION,
+    shape: {
+      id: "string (el que se pasa a --cadena)",
+      name: "string",
+      country: "string (ISO 2)",
+      countryName: "string",
+      status: "verified | planned",
+      nota: "string (solo en planned: por qué falta)",
+      activa: "boolean (es la cadena en uso)",
+    },
+    notes:
+      "Las cadenas planned se listan a propósito: el soporte está pensado y la nota dice qué falta. Usarlas falla con ese motivo, no con un error de red.",
+  },
+  config: {
+    version: SCHEMA_VERSION,
+    shape: {
+      cine: "string (slug del cine por defecto)",
+      cadena: "string (id de cadena por defecto)",
+      path: "string (solo en get: dónde vive el archivo)",
+    },
+    notes:
+      "butaca config set|unset|get. Precedencia al resolver: flag > BUTACA_CINE/BUTACA_CADENA > guardado > default. Vive en prefs.json, aparte de la sesión, así que auth logout no lo borra.",
+  },
   schema: {
     version: SCHEMA_VERSION,
     shape: {

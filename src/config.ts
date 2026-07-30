@@ -31,8 +31,13 @@ export interface ButacaConfig {
  * apuntar a un directorio descartable sin tocar el ~/.butaca real de quien
  * corre la suite.
  */
-function butacaHome(): string {
+export function butacaHome(): string {
   return process.env.BUTACA_HOME ?? join(homedir(), ".butaca");
+}
+
+/** Preferencias, aparte de config.json: no son credenciales y sobreviven al logout. */
+export function prefsPath(): string {
+  return join(butacaHome(), "prefs.json");
 }
 
 export function configPath(): string {

@@ -48,10 +48,31 @@ butaca funciones --cine palermo    # horarios con butacas libres
 butaca estrenos --cine palermo     # preventa y próximos
 butaca palermo                     # atajo de "funciones --cine"
 butaca schema                      # shapes JSON de cada comando, para agentes
+butaca cadenas                     # qué cadenas soporta
 ```
 
 Filtros de `funciones`: `--peli`, `--fecha`, `--formato`, `--idioma`, `--libres`,
 `--todas`.
+
+### Tu cine por defecto
+
+```bash
+butaca config set cine palermo
+butaca funciones                   # ya no hace falta --cine
+```
+
+Precedencia: el flag gana, después `BUTACA_CINE`, después lo guardado. Vive en
+`~/.butaca/prefs.json`, aparte de la sesión, así que `auth logout` no lo borra.
+
+### Cadenas
+
+Hoy solo **Cinemark Hoyts Argentina** está soportada. El registro
+(`src/providers.ts`) está armado para sumar otras: cada una declara su host, su
+header de país y su token de canal.
+
+Cineplanet Perú está declarada como `planned`. Su CDN responde 403 a todo pedido
+desde fuera de Perú, así que falta mapear su superficie desde una conexión
+peruana antes de escribir el adapter. `scripts/recon-pe.sh` junta lo necesario.
 
 ### El mapa de la sala
 
@@ -124,7 +145,7 @@ Dos detalles que el CLI corrige y están en `CONTRACT.md`:
 
 ```bash
 bun install
-bun test          # 194 tests, sin red
+bun test          # 205 tests, sin red
 bun run src/cli.ts cines
 ```
 
