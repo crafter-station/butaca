@@ -77,6 +77,10 @@ jobs:
         if: steps.version.outputs.changed == 'true'
         run: bun run build
 
+      - name: Verify package
+        if: steps.version.outputs.changed == 'true'
+        run: bun run verify:package
+
       - name: Publish to npm
         if: steps.version.outputs.changed == 'true'
         run: npm publish --access public
