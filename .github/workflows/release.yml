@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "package.json"
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Update npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Detect version change
+        id: version
+        run: |
+          LOCAL=$(jq -r .version package.json)
+          if PUBLISHED=$(npm view "butaca@$LOCAL" version 2>npm-view-error.txt); then
+            CHANGED=false
+          elif grep -q "E404" npm-view-error.txt; then
+            PUBLISHED=$(npm view butaca version 2>/dev/null || echo "none")
+            CHANGED=true
+          else
+            cat npm-view-error.txt >&2
+            exit 1
+          fi
+          echo "local=$LOCAL" >> "$GITHUB_OUTPUT"
+          echo "published=$PUBLISHED" >> "$GITHUB_OUTPUT"
+          if [ "$CHANGED" = "true" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Version changed: $PUBLISHED -> $LOCAL"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged ($LOCAL), skipping publish"
+          fi
+
+      - name: Install dependencies
+        if: steps.version.outputs.changed == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        if: steps.version.outputs.changed == 'true'
+        run: bunx @biomejs/biome@2.4.10 lint src tests --diagnostic-level=error
+
+      - name: Typecheck
+        if: steps.version.outputs.changed == 'true'
+        run: bunx tsc --noEmit && bunx tsc --noEmit -p tsconfig.test.json
+
+      - name: Test
+        if: steps.version.outputs.changed == 'true'
+        run: bun test
+
+      - name: Build
+        if: steps.version.outputs.changed == 'true'
+        run: bun run build
+
+      - name: Publish to npm
+        if: steps.version.outputs.changed == 'true'
+        run: npm publish --access public
+
+      - name: Tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.local }}
+        run: |
+          if ! git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            git tag "v$VERSION"
+            git push origin "v$VERSION"
+          fi
+          if ! gh release view "v$VERSION" >/dev/null 2>&1; then
+            gh release create "v$VERSION" --title "v$VERSION" --generate-notes
+          fi
