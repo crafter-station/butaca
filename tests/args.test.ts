@@ -88,6 +88,16 @@ describe("parseArgs", () => {
   it("parsea --no-cache", () => {
     expect(parseArgs(["funciones", "--cine", "palermo", "--no-cache"]).noCache).toBe(true);
   });
+
+  it("parsea el flujo elegir", () => {
+    const args = parseArgs(["elegir", "spiderman", "--fecha", "mañana", "--cantidad", "2", "--mejor-asiento", "--preflight"]);
+    expect(args.command).toBe("elegir");
+    expect(args.positional).toEqual(["spiderman"]);
+    expect(args.fecha).toBe("mañana");
+    expect(args.cantidad).toBe(2);
+    expect(args.mejorAsiento).toBe(true);
+    expect(args.preflight).toBe(true);
+  });
 });
 
 describe("isKnownCommand", () => {

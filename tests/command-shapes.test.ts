@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { runButacas } from "../src/commands/butacas.js";
+import { buildButacasPayload, runButacas } from "../src/commands/butacas.js";
 import { runReservar } from "../src/commands/reservar.js";
 import type { Flags } from "../src/format.js";
 import { readdir } from "node:fs/promises";
 import { SCHEMAS } from "../src/commands/schema.js";
+import { parseSeatMap } from "../src/seat-map.js";
+import seatMapFixture from "./fixtures/seat-map.json" with { type: "json" };
+import type { RawSeatMapResponse } from "../src/api-auth.js";
 
 const FLAGS: Flags = {
   json: true,
@@ -85,6 +88,19 @@ describe("schema cubre todos los comandos (regresión)", () => {
 
     const cubiertos = Object.keys(SCHEMAS).sort();
     expect(cubiertos).toEqual(comandos);
+  });
+
+  it("el payload emitido por butacas tiene exactamente las claves declaradas", () => {
+    const payload = buildButacasPayload({
+      sessionId: "161965",
+      cinemaId: "733",
+      transIdTemp: 42,
+      seatMap: parseSeatMap(seatMapFixture as unknown as RawSeatMapResponse),
+      funcion: null,
+      siteUrl: null,
+    });
+    const schema = SCHEMAS.butacas as { shape: Record<string, unknown> };
+    expect(Object.keys(payload).sort()).toEqual(Object.keys(schema.shape).sort());
   });
 
   it("cada schema declara su versión y su shape", () => {

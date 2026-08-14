@@ -8,8 +8,11 @@ export type ErrorCode =
   | "AUTH_REQUIRED"
   | "AUTH_EXPIRED"
   | "AUTH_FAILED"
+  | "PRICES_UNAVAILABLE"
   | "SEATS_UNAVAILABLE"
   | "ORDER_FAILED";
+
+export type SideEffect = "none" | "order_opened" | "seat_held";
 
 export interface EnvelopeMeta {
   source: string;
@@ -30,6 +33,8 @@ export interface EnvelopeError {
     code: ErrorCode;
     message: string;
     hint: string;
+    retryable?: boolean;
+    sideEffect?: SideEffect;
   };
 }
 

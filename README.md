@@ -46,6 +46,7 @@ butaca cines                       # los 24 complejos
 butaca cartelera --cine palermo    # qué se está dando
 butaca funciones --cine palermo    # horarios con butacas libres
 butaca estrenos --cine palermo     # preventa y próximos
+butaca elegir spiderman --cine palermo --fecha mañana --formato 2D --idioma SUB
 butaca palermo                     # atajo de "funciones --cine"
 butaca schema                      # shapes JSON de cada comando, para agentes
 butaca cadenas                     # qué cadenas soporta
@@ -53,6 +54,13 @@ butaca cadenas                     # qué cadenas soporta
 
 Filtros de `funciones`: `--peli`, `--fecha`, `--formato`, `--idioma`, `--libres`,
 `--todas`.
+
+`elegir` acepta un título parcial, resuelve una sola película y función, y usa
+el ranking geométrico para proponer la mejor butaca libre. `--dry-run` elige la
+función con más disponibilidad, priorizando las que no son trasnoche, sin
+autenticar ni abrir una orden. `--preflight` valida sesión y precio
+sin abrirla. Solo abre una orden y hace el hold después de una confirmación
+interactiva o `--yes`.
 
 ### Tu cine por defecto
 
@@ -130,6 +138,10 @@ Existe `butaca reservar`, que toma inventario real y funciona, pero por lo
 anterior su resultado no se puede pagar. Está fuera del camino principal a
 propósito.
 
+Los payloads de `reservar` y `elegir` exponen
+`browserCheckoutAvailable: false`, `sideEffect` y `siteUrl`. `siteUrl` vuelve al
+sitio, pero no preserva la orden ni es una URL de checkout.
+
 Tampoco resuelve captchas ni automatiza medios de pago.
 
 ## Cómo funciona
@@ -145,7 +157,7 @@ Dos detalles que el CLI corrige y están en `CONTRACT.md`:
 
 ```bash
 bun install
-bun test          # 205 tests, sin red
+bun test          # 215 tests, sin red
 bun run src/cli.ts cines
 ```
 

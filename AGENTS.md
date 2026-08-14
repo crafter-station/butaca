@@ -11,7 +11,7 @@ publicar). Este archivo es lo que quedó de ellos.
 ## Antes de tocar nada
 
 ```bash
-bun test          # 194 tests, sin red
+bun test          # 215 tests, sin red
 npx tsc --noEmit  # src
 npx tsc --noEmit -p tsconfig.test.json
 npx biome check --write .
@@ -230,9 +230,10 @@ principal con la razón dicha. Retirar no es borrar.
 
 ## Límites que no se cruzan
 
-- **El pago no se automatiza.** `reservar` termina devolviendo la URL de
-  checkout. Los callbacks de MODO y la entrada de tarjeta cruzan a 3-D Secure
-  del banco y son territorio de fraude.
+- **El pago no se automatiza.** El carrito vive en el storage local del
+  navegador, así que una orden abierta por el CLI no tiene URL de continuación.
+  Los callbacks de MODO y la entrada de tarjeta cruzan a 3-D Secure del banco y
+  son territorio de fraude.
 - **Nada de captchas.**
 - **Un prompt que lee un secreto lo enmascara desde la primera versión.** La
   primera versión de `auth login` lo mostraba en claro y una credencial real

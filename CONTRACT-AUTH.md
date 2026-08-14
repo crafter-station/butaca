@@ -115,6 +115,8 @@ Mismo shape que el resto del CLI. Códigos nuevos:
 ```jsonc
 {
   "sessionId": "159037",
+  "movie": { "slug": "spider-man-un-nuevo-dia", "name": "SPIDER-MAN: UN NUEVO DÍA" },
+  "showtime": { "dateTime": "15/08/2026 21:00", "displayDate": "2026-08-15", "format": "2D", "language": "SUB" },
   "theater": { "id": "733", "room": "7" },
   "transIdTemp": 20012804416,
   "screen": { "rows": 14, "columns": 14 },
@@ -130,7 +132,9 @@ Mismo shape que el resto del CLI. Códigos nuevos:
       "statusId": 0
     }]
   }],
-  "summary": { "total": 196, "available": 180, "accessible": 4, "broken": 2 }
+  "summary": { "total": 196, "available": 180, "accessible": 4, "broken": 2 },
+  "sugeridas": [{ "row": "10", "number": "16", "label": "10-16", "distanciaPantalla": 0.69, "desviacionCentro": 0.02, "score": 0.98 }],
+  "siteUrl": "https://www.cinemark.com.ar/pelicula/spider-man-un-nuevo-dia?cine=palermo"
 }
 ```
 
@@ -143,8 +147,10 @@ a un agente a re-derivarlas.
 {
   "transIdTemp": 20012804416,
   "seats": [{ "row": "F", "number": "12" }],
-  "held": true,
-  "checkoutUrl": "https://www.cinemark.com.ar/checkout",
+  "seatHeld": true,
+  "browserCheckoutAvailable": false,
+  "sideEffect": "seat_held",
+  "siteUrl": "https://www.cinemark.com.ar/pelicula/spider-man-un-nuevo-dia?cine=palermo",
   "expiresAt": "..."          // si el upstream lo informa
 }
 ```
@@ -240,6 +246,7 @@ dos cadenas distintas sobre el mismo motor de ticketing.
 
 ## Qué sigue fuera
 
-**El pago.** `reservar` termina devolviendo la URL de checkout. Los callbacks de
-MODO y la entrada de tarjeta no se automatizan: eso cruza a 3-D Secure del banco
-y es territorio de fraude.
+**El pago.** `reservar` devuelve `browserCheckoutAvailable: false` y un
+`siteUrl` que no preserva la orden. Los callbacks de MODO y la entrada de
+tarjeta no se automatizan: eso cruza a 3-D Secure del banco y es territorio de
+fraude.

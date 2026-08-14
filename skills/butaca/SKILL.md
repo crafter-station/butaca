@@ -63,6 +63,10 @@ butaca funciones --cine <slug>                  # horarios + butacas libres
 butaca estrenos [--cine <slug>] [--todos]       # preventa y próximos estrenos
 butaca estrenos <busqueda> [--cine <slug>]      # un estreno, con sus ventas
 butaca estrenos --peli <busqueda>               # idem, con el flag del resto
+butaca elegir <busqueda> --cine <slug>           # función y mejor butaca
+               [--fecha hoy|mañana|YYYY-MM-DD]
+               [--formato 2D] [--idioma SUB] [--cantidad <n>]
+               [--dry-run|--preflight] [--yes]
 butaca <cine-slug>                              # atajo de funciones --cine
 butaca schema [comando]                         # shapes con version
 ```
@@ -90,6 +94,12 @@ Autoridad en runtime: `butaca schema --json`. Resumen:
 `funciones` → `{ sessionId, movie: { corporateId, name }, theater: { id, room },
 dateTime, displayDate, format, language, seats: { available, capacity, pct } }`
 
+`butacas` → `{ sessionId, movie, showtime, theater, transIdTemp, screen, areas,
+summary, sugeridas, siteUrl }`
+
+`reservar` → `{ transIdTemp, seats, seatHeld, browserCheckoutAvailable,
+sideEffect, siteUrl, expiresAt? }`
+
 Dos cosas que el schema marca como notas y conviene saber:
 
 - **`seats.pct` lo calcula butaca**, no viene del upstream. El campo de estado de
@@ -105,6 +115,19 @@ Dos cosas que el schema marca como notas y conviene saber:
 
 El caso más común. La pregunta no es "qué dan" sino "qué función todavía tiene
 butacas buenas".
+
+```bash
+butaca elegir spiderman --cine palermo --fecha mañana --formato 2D --idioma SUB --cantidad 1 --mejor-asiento --dry-run
+butaca elegir spiderman --cine palermo --fecha mañana --formato 2D --idioma SUB --cantidad 1 --mejor-asiento --preflight
+```
+
+La primera llamada usa solo datos públicos. La segunda autentica y valida el
+precio, pero tampoco abre una orden. Para abrir el mapa y hacer el hold, pedí
+confirmación al usuario y repetí sin esos flags. En modo no interactivo hace
+falta `--yes`. La función elegida maximiza disponibilidad, pero prioriza una
+función del día sobre una trasnoche.
+
+Para explorar todas las alternativas sin elegir una:
 
 ```bash
 butaca funciones --cine palermo --libres 100 --json \
@@ -205,9 +228,10 @@ traducción no es trivial y la API no acepta etiquetas.
 
 ## Qué NO hace
 
-**No automatiza el pago.** `reservar` termina devolviendo la URL de checkout con
-la orden armada, y ahí corta. Cinemark mete 3-D Secure del banco y automatizar
-eso cruza a territorio de fraude.
+**No automatiza el pago ni puede transferir la orden al navegador.** Cinemark
+guarda el carrito en `sessionStorage` y `localStorage`, no en la cuenta ni en
+una URL. `reservar` y `elegir` devuelven `browserCheckoutAvailable: false` y un
+`siteUrl` que solo vuelve al sitio para elegir de nuevo.
 
 No inventes un comando de pago ni sugieras que existe.
 

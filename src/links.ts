@@ -24,23 +24,6 @@ export function linkPelicula(peliSlug: string, cineSlug?: string | null): string
   return cineSlug ? `${base}?cine=${cineSlug}` : base;
 }
 
-/** Para mostrar: el https:// no aporta y ocupa ancho. */
-/**
- * Página de checkout con la orden ya cargada. Verificado 2026-07-28 recorriendo
- * el flujo autenticado en el navegador: el sitio navega acá tras "Comprar
- * entradas", y la página muestra película, sala y horario de la orden abierta.
- *
- * `/checkout`, que era el fallback inventado, **redirige al home** con
- * `?shouldAuthenticate=true`.
- *
- * El slug es decorativo: la orden vive en la sesión del servidor, así que
- * cualquier slug muestra la misma orden. Se pasa el de la película reservada
- * igual, porque es lo que el sitio pone y lo que hace legible el link.
- */
-export function linkCheckout(peliSlug: string): string {
-  return `${BASE}/pelicula/${peliSlug}/compra-entradas/mejoratuexperiencia`;
-}
-
 export function linkCorto(url: string): string {
   return url.replace(/^https:\/\/www\./, "");
 }

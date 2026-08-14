@@ -255,7 +255,9 @@ describe("renderSeatMap --numeros", () => {
   // uno), y ahí se puede verificar que el color esté presente.
   it("con color forzado, el estado sigue codificado en el color del número", () => {
     const previo = process.env.FORCE_COLOR;
+    const noColorPrevio = process.env.NO_COLOR;
     process.env.FORCE_COLOR = "1";
+    delete process.env.NO_COLOR;
     try {
       const seatMap = parseSeatMap(raw);
       const drawing = renderSeatMap(seatMap, { numerada: true });
@@ -263,6 +265,8 @@ describe("renderSeatMap --numeros", () => {
     } finally {
       if (previo === undefined) delete process.env.FORCE_COLOR;
       else process.env.FORCE_COLOR = previo;
+      if (noColorPrevio === undefined) delete process.env.NO_COLOR;
+      else process.env.NO_COLOR = noColorPrevio;
     }
   });
 

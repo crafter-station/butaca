@@ -8,10 +8,11 @@ describe("pricesQueryParams", () => {
   // Medido de a un parámetro: cinemaId+sessionId da 500, con feature sigue 500,
   // recién con el token da 200.
   it("incluye salesChannelToken, que el upstream exige", () => {
-    const params = pricesQueryParams("733", "159037");
+    const params = pricesQueryParams("733", "159037", "92468");
     expect(params.salesChannelToken).toBeTruthy();
     expect(params.cinemaId).toBe("733");
     expect(params.sessionId).toBe("159037");
+    expect(params.memberId).toBe("92468");
   });
 });
 

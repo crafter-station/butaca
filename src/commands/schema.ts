@@ -1,7 +1,7 @@
 import { ok, printEnvelope, reportError } from "../format.js";
 import { ApiError } from "../api.js";
 
-const SCHEMA_VERSION = "1.0.0";
+export const SCHEMA_VERSION = "1.1.0";
 
 export const SCHEMAS: Record<string, unknown> = {
   cines: {
@@ -67,6 +67,9 @@ export const SCHEMAS: Record<string, unknown> = {
     version: SCHEMA_VERSION,
     shape: {
       sessionId: "string",
+      movie: "null | { slug: string | null, name: string }",
+      showtime:
+        "null | { dateTime: string, displayDate: string, format: string, language: string }",
       theater: { id: "string", room: "string" },
       transIdTemp: "number",
       screen: { rows: "number", columns: "number" },
@@ -88,21 +91,55 @@ export const SCHEMAS: Record<string, unknown> = {
         },
       ],
       summary: { total: "number", available: "number", accessible: "number", broken: "number" },
+      sugeridas: [
+        {
+          row: "string",
+          number: "string",
+          label: "string (lista para --asientos)",
+          distanciaPantalla: "number (0 a 1)",
+          desviacionCentro: "number (0 a 1)",
+          score: "number (0 a 1, mayor es mejor)",
+        },
+      ],
+      siteUrl: "string | null",
     },
     notes:
-      "Abre una orden real en Cinemark (POST /order-tickets). Con --dry-run devuelve { wouldOpenOrder, sessionId, cinemaId, steps } y no llama a nada. Se exponen las dos representaciones a propósito: el humano lee row/number, order-set-seats solo acepta gridRow/gridNumber. AUTO_ASIGNADA no es un atributo de la sala: cambia en cada orden y es la butaca que Cinemark preasigna a esa transacción.",
+      "Abre una orden real en Cinemark (POST /order-tickets). Con --dry-run devuelve { wouldOpenOrder, sessionId, cinemaId, steps } y no llama a nada. siteUrl vuelve a la película pero no preserva la orden, porque el carrito vive en el storage local del navegador. Se exponen las dos representaciones de butaca a propósito: el humano lee row/number, order-set-seats solo acepta gridRow/gridNumber.",
   },
   reservar: {
     version: SCHEMA_VERSION,
     shape: {
       transIdTemp: "number",
       seats: [{ row: "string", number: "string" }],
-      held: "boolean",
-      checkoutUrl: "string",
+      seatHeld: "boolean",
+      browserCheckoutAvailable: "false",
+      sideEffect: "seat_held",
+      siteUrl: "string",
       expiresAt: "string (ISO, solo si el upstream lo informa)",
     },
     notes:
-      "Toma inventario real. Requiere confirmación salvo --yes. Con --dry-run valida contra el mapa y no reserva, y no exige --yes. El pago no se automatiza: termina en checkoutUrl. --asignada toma la butaca que Cinemark preasigna. Cada orden recibe la suya, así que para quedarse con la que se vio en el mapa hay que pasar además --orden <transIdTemp>, que reusa la transacción que abrió `butacas` en vez de abrir una nueva. Sin --orden se abre una orden nueva y la preasignada es otra.",
+      "Toma inventario real. Requiere confirmación salvo --yes. browserCheckoutAvailable siempre es false: siteUrl no continúa la orden, solo vuelve al sitio para elegir de nuevo. --asignada toma la butaca que Cinemark preasigna. Cada orden recibe la suya, así que para quedarse con la que se vio en el mapa hay que pasar además --orden <transIdTemp>.",
+  },
+  elegir: {
+    version: SCHEMA_VERSION,
+    shape: {
+      movie: { slug: "string", title: "string" },
+      theater: { id: "string", slug: "string", name: "string", room: "string" },
+      showtime: "Funcion",
+      quantity: "number",
+      price: "null | { amount: number, currency: ARS, raw: number }",
+      seats: "null | SeatSugerida[]",
+      score: "number (solo después de abrir el mapa)",
+      transIdTemp: "number (solo después de abrir la orden)",
+      seatHeld: "boolean (solo después del hold)",
+      browserCheckoutAvailable: "false",
+      siteUrl: "string",
+      sideEffect: "none | order_opened | seat_held",
+      retryable: "boolean",
+      expiresAt: "string (ISO, solo si el upstream lo informa)",
+    },
+    notes:
+      "Selecciona una coincidencia de película y la función con más disponibilidad, priorizando las que no son trasnoche, antes de cualquier escritura. --dry-run usa datos públicos y no abre orden. --preflight valida sesión y precio sin abrir orden. El mapa requiere una orden y el hold requiere confirmación o --yes. siteUrl no preserva el carrito.",
   },
   auth: {
     version: SCHEMA_VERSION,
@@ -159,7 +196,7 @@ export function runSchema(commandName: string | null, machineMode: boolean): num
     const error = new ApiError(
       "BAD_INPUT",
       `No hay esquema para el comando "${commandName}"`,
-      "Comandos válidos: cines, cartelera, funciones.",
+      `Comandos válidos: ${Object.keys(SCHEMAS).join(", ")}.`,
     );
     return reportError(machineMode, error);
   }

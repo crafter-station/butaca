@@ -148,6 +148,39 @@ export function sugerirButacas(seatMap: SeatMap, limite = 5): SeatSugerida[] {
     .slice(0, limite);
 }
 
+export function sugerirGrupoButacas(seatMap: SeatMap, cantidad: number): SeatSugerida[] {
+  if (cantidad < 1) return [];
+  const scores = new Map(
+    sugerirButacas(seatMap, Number.MAX_SAFE_INTEGER).map((seat) => [seat.label, seat]),
+  );
+  const grupos: SeatSugerida[][] = [];
+  for (const area of seatMap.areas) {
+    const porFila = new Map<string, Seat[]>();
+    for (const seat of area.seats.filter((item) => item.statusId === 0)) {
+      porFila.set(seat.gridRow, [...(porFila.get(seat.gridRow) ?? []), seat]);
+    }
+    for (const seats of porFila.values()) {
+      const sorted = seats.sort((a, b) => Number(a.gridNumber) - Number(b.gridNumber));
+      for (let index = 0; index <= sorted.length - cantidad; index += 1) {
+        const window = sorted.slice(index, index + cantidad);
+        const first = Number(window[0]?.gridNumber);
+        if (window.some((seat, offset) => Number(seat.gridNumber) !== first + offset)) continue;
+        const scored = window
+          .map((seat) => scores.get(`${seat.row}-${seat.number}`))
+          .filter((seat): seat is SeatSugerida => Boolean(seat));
+        if (scored.length === cantidad) grupos.push(scored);
+      }
+    }
+  }
+  return (
+    grupos.sort((a, b) => {
+      const scoreA = a.reduce((sum, seat) => sum + seat.score, 0) / a.length;
+      const scoreB = b.reduce((sum, seat) => sum + seat.score, 0) / b.length;
+      return scoreB - scoreA || a.map((seat) => seat.label).join(",").localeCompare(b.map((seat) => seat.label).join(","));
+    })[0] ?? []
+  );
+}
+
 export interface SeatArea {
   code: string;
   number: string;
@@ -384,7 +417,7 @@ function centerText(text: string, width: number, useColor: boolean): string {
   return " ".repeat(padding) + text;
 }
 
-function legendLine(useColor: boolean, presentes: number[], numerada = false): string {
+function legendLine(useColor: boolean, presentes: number[], _numerada = false): string {
   // La leyenda usa el mismo glifo que el mapa: con color son bloques, sin color
   // son las letras, porque ocho bloques idénticos en gris no distinguen nada.
   // Solo los estados que existen en ESTA sala. Listar los ocho siempre sería
@@ -425,4 +458,3 @@ function legendLine(useColor: boolean, presentes: number[], numerada = false): s
     })
     .join("   ");
 }
-

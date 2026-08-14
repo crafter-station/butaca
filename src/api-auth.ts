@@ -115,7 +115,6 @@ export interface HoldSeatsResult {
   Code: number;
   Message: string;
   Data?: {
-    checkoutUrl?: string;
     expiresAt?: string;
     [key: string]: unknown;
   };
@@ -235,10 +234,12 @@ async function request<T>(
 export function pricesQueryParams(
   cinemaId: string,
   sessionId: string,
+  memberId: string,
 ): Record<string, string> {
   return {
     cinemaId,
     sessionId,
+    memberId,
     feature: "0",
     salesChannelToken: SALES_CHANNEL_TOKEN_TICKET_CANDY,
   };
@@ -256,15 +257,43 @@ export async function fetchPrices(
   cinemaId: string,
   sessionId: string,
   memberSessionId: string,
+  memberId: string,
 ): Promise<PriceCategory[]> {
   // `salesChannelToken` es obligatorio acá, igual que en order-tickets: sin él
   // el upstream responde 500 "The request is invalid". Medido de a un parámetro:
   // sin token da 500 aunque mandes feature; con token da 200.
   const body = await request<{ data: PriceCategory[] }>("/get-prices", memberSessionId, {
     method: "GET",
-    params: pricesQueryParams(cinemaId, sessionId),
+    params: pricesQueryParams(cinemaId, sessionId, memberId),
   });
   return body.data;
+}
+
+export function buildTicketList(categories: PriceCategory[], quantity = 1): TicketListEntry[] {
+  const category = categories[0];
+  const ticket = category?.tickets[0];
+  const buyOption = ticket?.buyOptions[0];
+  if (!category || !ticket || !buyOption) {
+    throw new ApiError(
+      "PRICES_UNAVAILABLE",
+      "Cinemark no devolvió tarifas utilizables para esta función",
+      "La consulta incluyó memberId y no abrió ninguna orden. Probá otra función o reportá un posible cambio del contrato.",
+      { retryable: false, sideEffect: "none" },
+    );
+  }
+  return [
+    {
+      areaCategoryCode: "",
+      hOCode: ticket.hoCode,
+      recogId: buyOption.recogId,
+      promoId: buyOption.promoId,
+      voucher: "",
+      quantity,
+      price: buyOption.value,
+      ticketsQty: ticket.ticketsQty,
+      buyOptions: [buyOption],
+    },
+  ];
 }
 
 export interface OpenOrderParams {

@@ -23,6 +23,9 @@ export interface ParsedArgs {
   asientos: string[] | null;
   asignada: boolean;
   orden: number | null;
+  cantidad: number;
+  mejorAsiento: boolean;
+  preflight: boolean;
   email: string | null;
   password: string | null;
 }
@@ -36,6 +39,7 @@ const KNOWN_COMMANDS = [
   "auth",
   "butacas",
   "reservar",
+  "elegir",
   "cadenas",
   "config",
 ];
@@ -55,6 +59,7 @@ function takesValue(flag: string): boolean {
     "--orden",
     "--email",
     "--password",
+    "--cantidad",
   ].includes(flag);
 }
 
@@ -82,6 +87,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
     asientos: null,
     asignada: false,
     orden: null,
+    cantidad: 1,
+    mejorAsiento: false,
+    preflight: false,
     email: null,
     password: null,
   };
@@ -149,6 +157,16 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
       continue;
     }
+    if (token === "--mejor-asiento") {
+      result.mejorAsiento = true;
+      i += 1;
+      continue;
+    }
+    if (token === "--preflight") {
+      result.preflight = true;
+      i += 1;
+      continue;
+    }
 
     if (token.startsWith("--") && takesValue(token)) {
       const value = argv[i + 1];
@@ -191,6 +209,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
         case "--password":
           result.password = value;
           break;
+        case "--cantidad": {
+          const parsed = Number(value);
+          if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
+            throw new ArgParseError("--cantidad necesita un entero entre 1 y 10");
+          }
+          result.cantidad = parsed;
+          break;
+        }
         case "--libres": {
           const parsed = Number(value);
           if (!Number.isInteger(parsed) || parsed < 0) {

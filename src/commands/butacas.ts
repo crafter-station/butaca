@@ -1,6 +1,5 @@
 import { ApiError, fetchMovies, fetchShowtimesByTheater, fetchTheaters } from "../api.js";
-import { fetchPrices, openOrder, fetchSeatMap } from "../api-auth.js";
-import type { PriceCategory, TicketListEntry } from "../api-auth.js";
+import { buildTicketList, fetchPrices, openOrder, fetchSeatMap } from "../api-auth.js";
 import { auditPending, auditResolve, newAuditId } from "../audit-log.js";
 import { guardarOrden, olvidarOrden, ordenVigente } from "../order-cache.js";
 import { currentSession } from "../auth.js";
@@ -18,38 +17,7 @@ export interface ButacasOptions {
   dryRun: boolean;
 }
 
-/**
- * Construye el ticketList mínimo para abrir la orden: el primer ticket de la
- * primera categoría que devuelve get-prices, con su buyOption entero
- * reenviado tal cual (order-tickets lo exige completo, no solo recogId/
- * promoId). Verificado contra un payload real de get-prices y un
- * order-tickets que devolvió transIdTemp.
- */
-export function buildTicketList(categories: PriceCategory[]): TicketListEntry[] {
-  const category = categories[0];
-  const ticket = category?.tickets[0];
-  const buyOption = ticket?.buyOptions[0];
-  if (!category || !ticket || !buyOption) {
-    throw new ApiError(
-      "ORDER_FAILED",
-      "Cinemark no devolvió tarifas para esta función",
-      "Puede que la función ya haya cerrado la venta. Probá con otra.",
-    );
-  }
-  return [
-    {
-      areaCategoryCode: "",
-      hOCode: ticket.hoCode,
-      recogId: buyOption.recogId,
-      promoId: buyOption.promoId,
-      voucher: "",
-      quantity: 1,
-      price: buyOption.value,
-      ticketsQty: ticket.ticketsQty,
-      buyOptions: [buyOption],
-    },
-  ];
-}
+export { buildTicketList } from "../api-auth.js";
 
 /**
  * El mapa no dice qué película es, así que el slug sale de cruzar el sessionId
@@ -98,7 +66,6 @@ export async function resolveFuncion(cinemaId: string, sessionId: string): Promi
  * que no dar ejemplo.
  */
 export function reservarSugerido(sessionId: string, cine: string, seatMap: SeatMap): string {
-  const todas = seatMap.areas.flatMap((a) => a.seats);
   // NO se sugiere la butaca preasignada (estado 5). Es tentador porque es la que
   // el sitio te deja marcada, pero pertenece a ESTA orden y muere con ella:
   // `reservar` abre una orden nueva, que recibe otra preasignada, y la anterior
@@ -107,12 +74,46 @@ export function reservarSugerido(sessionId: string, cine: string, seatMap: SeatM
   // producía un comando que fallaba al pegarlo con "no está disponible".
   // Una butaca libre sigue libre en la orden siguiente, salvo que alguien la
   // compre en el medio, que es un fallo honesto y no uno que nosotros creamos.
-  const elegidas = todas
-    .filter((s) => s.statusId === 0)
-    .slice(0, 1)
-    .map((s) => `${s.row}-${s.number}`);
+  const elegidas = seatMap.screen
+    ? sugerirButacas(seatMap, 1).map((s) => s.label)
+    : seatMap.areas
+        .flatMap((area) => area.seats)
+        .filter((seat) => seat.statusId === 0)
+        .slice(0, 1)
+        .map((seat) => `${seat.row}-${seat.number}`);
   const ejemplo = elegidas.length > 0 ? elegidas.join(",") : "<fila-asiento>";
   return `butaca reservar ${sessionId} --cine ${cine} --asientos ${ejemplo}`;
+}
+
+export function buildButacasPayload(params: {
+  sessionId: string;
+  cinemaId: string;
+  transIdTemp: number;
+  seatMap: SeatMap;
+  funcion: FuncionInfo | null;
+  siteUrl: string | null;
+}) {
+  return {
+    sessionId: params.sessionId,
+    movie: params.funcion
+      ? { slug: params.funcion.slug, name: params.funcion.pelicula }
+      : null,
+    showtime: params.funcion
+      ? {
+          dateTime: params.funcion.dateTime,
+          displayDate: params.funcion.displayDate,
+          format: params.funcion.formato,
+          language: params.funcion.idioma,
+        }
+      : null,
+    theater: { id: params.cinemaId, room: params.funcion?.sala ?? "" },
+    transIdTemp: params.transIdTemp,
+    screen: params.seatMap.screen,
+    areas: params.seatMap.areas,
+    summary: params.seatMap.summary,
+    sugeridas: sugerirButacas(params.seatMap),
+    siteUrl: params.siteUrl,
+  };
 }
 
 export async function runButacas(options: ButacasOptions, flags: Flags, machineMode: boolean): Promise<number> {
@@ -186,7 +187,12 @@ export async function runButacas(options: ButacasOptions, flags: Flags, machineM
       );
     }
 
-    const prices = await fetchPrices(cinemaId, options.sessionId, session.session.memberSessionId);
+    const prices = await fetchPrices(
+      cinemaId,
+      options.sessionId,
+      session.session.memberSessionId,
+      session.session.memberId,
+    );
     const ticketList = buildTicketList(prices);
 
     const auditId = newAuditId();
@@ -244,30 +250,14 @@ export async function runButacas(options: ButacasOptions, flags: Flags, machineM
     const siteUrl =
       funcion?.slug && options.cine ? linkPelicula(funcion.slug, options.cine) : null;
 
-    const payload = {
+    const payload = buildButacasPayload({
       sessionId: options.sessionId,
-      movie: funcion ? { slug: funcion.slug, name: funcion.pelicula } : null,
-      showtime: funcion
-        ? {
-            dateTime: funcion.dateTime,
-            displayDate: funcion.displayDate,
-            format: funcion.formato,
-            language: funcion.idioma,
-          }
-        : null,
-      theater: { id: cinemaId, room: funcion?.sala ?? "" },
+      cinemaId,
       transIdTemp,
-      screen: seatMap.screen,
-      areas: seatMap.areas,
-      summary: seatMap.summary,
-      // Ranking listo para consumir: el cliente recomienda sin re-derivar la
-      // geometría de la sala desde gridRow/gridNumber. `label` se pasa tal cual
-      // a --asientos.
-      sugeridas: sugerirButacas(seatMap),
-      // No hay deep link a la orden: esto lleva a la peli con el cine elegido,
-      // que es lo más cerca que se puede llegar. Ver el comentario de abajo.
+      seatMap,
+      funcion,
       siteUrl,
-    };
+    });
 
     if (machineMode) {
       printEnvelope(

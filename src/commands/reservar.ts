@@ -3,8 +3,8 @@ import { stdin, stdout } from "node:process";
 import { ApiError, fetchTheaters } from "../api.js";
 import { resolveFuncion } from "./butacas.js";
 import { linkCartelera, linkPelicula } from "../links.js";
-import { fetchPrices, fetchSeatMap, holdSeats, openOrder } from "../api-auth.js";
-import type { HoldSeatEntry, PriceCategory, TicketListEntry } from "../api-auth.js";
+import { buildTicketList, fetchPrices, fetchSeatMap, holdSeats, openOrder } from "../api-auth.js";
+import type { HoldSeatEntry, TicketListEntry } from "../api-auth.js";
 import { auditPending, auditResolve, newAuditId } from "../audit-log.js";
 import { currentSession } from "../auth.js";
 import { ok, printEnvelope, reportError } from "../format.js";
@@ -23,38 +23,7 @@ export interface ReservarOptions {
   yes: boolean;
 }
 
-/**
- * Construye el ticketList mínimo para abrir la orden: el primer ticket de la
- * primera categoría que devuelve get-prices, con su buyOption entero
- * reenviado tal cual (order-tickets lo exige completo, no solo recogId/
- * promoId). Verificado contra un payload real de get-prices y un
- * order-tickets que devolvió transIdTemp.
- */
-export function buildTicketList(categories: PriceCategory[]): TicketListEntry[] {
-  const category = categories[0];
-  const ticket = category?.tickets[0];
-  const buyOption = ticket?.buyOptions[0];
-  if (!category || !ticket || !buyOption) {
-    throw new ApiError(
-      "ORDER_FAILED",
-      "Cinemark no devolvió tarifas para esta función",
-      "Puede que la función ya haya cerrado la venta. Probá con otra.",
-    );
-  }
-  return [
-    {
-      areaCategoryCode: "",
-      hOCode: ticket.hoCode,
-      recogId: buyOption.recogId,
-      promoId: buyOption.promoId,
-      voucher: "",
-      quantity: 1,
-      price: buyOption.value,
-      ticketsQty: ticket.ticketsQty,
-      buyOptions: [buyOption],
-    },
-  ];
-}
+export { buildTicketList } from "../api-auth.js";
 
 export interface ResolvedSeat {
   label: string;
@@ -208,7 +177,7 @@ async function abrirOReusar(
   );
 }
 
-export async function runReservar(options: ReservarOptions, flags: Flags, machineMode: boolean): Promise<number> {
+export async function runReservar(options: ReservarOptions, _flags: Flags, machineMode: boolean): Promise<number> {
   try {
     if (options.asientos.length === 0 && !options.asignada) {
       return reportError(
@@ -272,7 +241,18 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
       );
     }
 
-    const prices = await fetchPrices(cinemaId, options.sessionId, session.session.memberSessionId);
+    if (!machineMode && !options.dryRun) {
+      process.stderr.write(
+        `${amber("Aviso")}: reservar abre o reusa una orden y toma inventario real. La orden no se puede continuar en el navegador.\n`,
+      );
+    }
+
+    const prices = await fetchPrices(
+      cinemaId,
+      options.sessionId,
+      session.session.memberSessionId,
+      session.session.memberId,
+    );
     const ticketList = buildTicketList(prices);
 
     const auditId = newAuditId();
@@ -372,15 +352,17 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
     // lugar donde volver a elegir, no la continuación de esta reserva. Prometer
     // "completá el pago acá" era falso y hacía perder la butaca ya tomada.
     const funcion = await resolveFuncion(cinemaId, options.sessionId);
-    const checkoutUrl = funcion?.slug ? linkPelicula(funcion.slug, options.cine) : linkCartelera(options.cine);
+    const siteUrl = funcion?.slug ? linkPelicula(funcion.slug, options.cine) : linkCartelera(options.cine);
     const payload = {
       transIdTemp,
       seats: options.asientos.map((label) => {
         const parsed = parseSeatLabel(label);
         return { row: parsed?.row ?? label, number: parsed?.number ?? "" };
       }),
-      held: true,
-      checkoutUrl,
+      seatHeld: true,
+      browserCheckoutAvailable: false,
+      sideEffect: "seat_held" as const,
+      siteUrl,
       ...(held.Data?.expiresAt ? { expiresAt: held.Data.expiresAt } : {}),
     };
 
@@ -392,7 +374,7 @@ export async function runReservar(options: ReservarOptions, flags: Flags, machin
         `${green("✓")} Reservado: ${bold(asientos)} ${dim(`(orden ${transIdTemp})`)}\n` +
           `${dim("El pago se hace en el sitio y esta orden no se puede continuar ahí:")}\n` +
           `${dim("Cinemark guarda el carrito en el navegador, no en la cuenta.")}\n` +
-          `  ${bold(checkoutUrl)}  ${dim(italic("elegí de nuevo ahí para pagar"))}\n`,
+          `  ${bold(siteUrl)}  ${dim(italic("elegí de nuevo ahí para pagar"))}\n`,
       );
     }
     return 0;
