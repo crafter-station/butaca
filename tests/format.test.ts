@@ -46,6 +46,19 @@ describe("envelope de error", () => {
     expect(envelope.error.message).toBe("no existe");
     expect(envelope.error.hint).toBe("revisa el slug");
   });
+
+  it("incluye retryable y sideEffect cuando el error los declara", () => {
+    const envelope = fail(
+      new ApiError("PRICES_UNAVAILABLE", "sin tarifas", "probá otra función", {
+        retryable: false,
+        sideEffect: "none",
+      }),
+    );
+    expect(envelope.ok).toBe(false);
+    if (envelope.ok) throw new Error("envelope inesperado");
+    expect(envelope.error.retryable).toBe(false);
+    expect(envelope.error.sideEffect).toBe("none");
+  });
 });
 
 describe("exitCodeFor", () => {

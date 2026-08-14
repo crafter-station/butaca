@@ -6,6 +6,7 @@ import type {
   RawListResponse,
   RawShowtime,
   RawTheater,
+  SideEffect,
 } from "./types.js";
 
 const BASE_URL = "https://bff.cinemark.com.ar/api";
@@ -15,11 +16,20 @@ const SOURCE = "bff.cinemark.com.ar";
 export class ApiError extends Error {
   code: ErrorCode;
   hint: string;
+  retryable: boolean | undefined;
+  sideEffect: SideEffect | undefined;
 
-  constructor(code: ErrorCode, message: string, hint: string) {
+  constructor(
+    code: ErrorCode,
+    message: string,
+    hint: string,
+    metadata: { retryable?: boolean; sideEffect?: SideEffect } = {},
+  ) {
     super(message);
     this.code = code;
     this.hint = hint;
+    this.retryable = metadata.retryable;
+    this.sideEffect = metadata.sideEffect;
     this.name = "ApiError";
   }
 }

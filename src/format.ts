@@ -1,5 +1,5 @@
 import { ApiError, nowIso, source } from "./api.js";
-import { anchoVisible, bold, dim, errDim, errRed, padVisible, red } from "./style.js";
+import { anchoVisible, bold, dim, errDim, errRed, padVisible } from "./style.js";
 import type { Envelope, EnvelopeMeta } from "./types.js";
 
 export interface Flags {
@@ -31,12 +31,17 @@ export function ok<T>(data: T, nextSteps?: string[]): Envelope<T> {
 }
 
 export function fail(error: ApiError): Envelope<never> {
+  const metadata = {
+    ...(error.retryable === undefined ? {} : { retryable: error.retryable }),
+    ...(error.sideEffect === undefined ? {} : { sideEffect: error.sideEffect }),
+  };
   return {
     ok: false,
     error: {
       code: error.code,
       message: error.message,
       hint: error.hint,
+      ...metadata,
     },
   };
 }
@@ -47,6 +52,7 @@ const EXIT_1_CODES = new Set([
   "AUTH_REQUIRED",
   "AUTH_EXPIRED",
   "AUTH_FAILED",
+  "PRICES_UNAVAILABLE",
   "SEATS_UNAVAILABLE",
 ]);
 

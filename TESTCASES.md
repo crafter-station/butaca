@@ -334,8 +334,9 @@ butaca pagar       # comando desconocido, exit 1
 butaca checkout    # comando desconocido, exit 1
 ```
 
-`reservar` termina devolviendo la URL de checkout y ahí corta. El pago no se
-automatiza: cruza a 3-D Secure del banco y es territorio de fraude.
+`reservar` devuelve `browserCheckoutAvailable: false` y un `siteUrl` que no
+preserva la orden. El pago no se automatiza: cruza a 3-D Secure del banco y es
+territorio de fraude.
 
 ```bash
 butaca --help | tail -3

@@ -127,7 +127,7 @@ describe("buildTicketList (copia de reservar.ts): mismo shape real de get-prices
     expect(ticketList[0]?.buyOptions).toEqual([expectedBuyOption]);
   });
 
-  it("falla con ORDER_FAILED si get-prices no trae categorías", () => {
+  it("falla con PRICES_UNAVAILABLE si get-prices no trae categorías", () => {
     expect(() => buildTicketList([])).toThrow(ApiError);
   });
 });

@@ -44,16 +44,22 @@ describe("buildTicketList: parsea el shape real de get-prices (categorías -> ti
     expect(ticketList[0]?.hOCode).toBe("1697");
   });
 
-  it("falla con ORDER_FAILED si get-prices no trae categorías", () => {
+  it("propaga la cantidad pedida a order-tickets", () => {
+    expect(buildTicketList(categories, 2)[0]?.quantity).toBe(2);
+  });
+
+  it("falla con PRICES_UNAVAILABLE si get-prices no trae categorías", () => {
     expect(() => buildTicketList([])).toThrow(ApiError);
     try {
       buildTicketList([]);
     } catch (err) {
-      expect((err as ApiError).code).toBe("ORDER_FAILED");
+      expect((err as ApiError).code).toBe("PRICES_UNAVAILABLE");
+      expect((err as ApiError).retryable).toBe(false);
+      expect((err as ApiError).sideEffect).toBe("none");
     }
   });
 
-  it("falla con ORDER_FAILED si la categoría no trae tickets", () => {
+  it("falla con PRICES_UNAVAILABLE si la categoría no trae tickets", () => {
     const empty: PriceCategory[] = [
       { categoryId: 1, title: "GENERAL", cssClass: "standard", showTitle: true, tickets: [] },
     ];
