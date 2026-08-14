@@ -26,7 +26,7 @@
   ],
   "type": "module",
   "bin": {
-    "butaca": "./dist/cli.js"
+    "butaca": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -43,6 +43,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "build": "bun build src/cli.ts --target node --outfile dist/cli.js",
+    "verify:package": "bash scripts/verify-package.sh",
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
