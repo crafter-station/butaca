@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { ApiError } from "../src/api.js";
-import { resolveMovie, resolveRelativeDate, selectShowtime } from "../src/commands/elegir.js";
+import {
+  reserveRecommendedCommand,
+  resolveMovie,
+  resolveRelativeDate,
+  selectShowtime,
+} from "../src/commands/elegir.js";
 import { sugerirGrupoButacas } from "../src/seat-map.js";
 import type { RawCarteleraMovie, RawShowtime } from "../src/types.js";
 import moviesFixture from "./fixtures/movies.json" with { type: "json" };
@@ -137,5 +142,13 @@ describe("sugerirGrupoButacas", () => {
       ],
     } as Parameters<typeof sugerirGrupoButacas>[0];
     expect(sugerirGrupoButacas(seatMap, 2).map((seat) => seat.label)).toEqual(["7-6", "7-7"]);
+  });
+});
+
+describe("reserveRecommendedCommand", () => {
+  it("continúa la misma orden con el grupo recomendado", () => {
+    expect(reserveRecommendedCommand("162003", "palermo", ["7-6", "7-7"], 42)).toBe(
+      "butaca reservar 162003 --cine palermo --asientos 7-6,7-7 --orden 42",
+    );
   });
 });

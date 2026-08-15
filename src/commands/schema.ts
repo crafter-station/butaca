@@ -1,7 +1,7 @@
 import { ok, printEnvelope, reportError } from "../format.js";
 import { ApiError } from "../api.js";
 
-export const SCHEMA_VERSION = "1.1.0";
+export const SCHEMA_VERSION = "1.2.0";
 
 export const SCHEMAS: Record<string, unknown> = {
   cines: {
@@ -131,7 +131,7 @@ export const SCHEMAS: Record<string, unknown> = {
       seats: "null | SeatSugerida[]",
       score: "number (solo después de abrir el mapa)",
       transIdTemp: "number (solo después de abrir la orden)",
-      seatHeld: "boolean (solo después del hold)",
+      seatHeld: "boolean (después de recomendar o hacer hold)",
       browserCheckoutAvailable: "false",
       siteUrl: "string",
       sideEffect: "none | order_opened | seat_held",
@@ -182,6 +182,12 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     notes: "Sin argumento devuelve todos los comandos. Con uno, solo ese.",
   },
+};
+
+SCHEMAS.recomendar = {
+  ...(SCHEMAS.elegir as Record<string, unknown>),
+  notes:
+    "Selecciona la función con más disponibilidad y recomienda el mejor grupo contiguo para --personas. --dry-run usa datos públicos. --preflight valida sesión y precio. Abrir el mapa requiere confirmación y crea una orden, pero recomendar no hace hold. Devuelve el comando reservar exacto en meta.nextSteps.",
 };
 
 export function runSchema(commandName: string | null, machineMode: boolean): number {

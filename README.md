@@ -46,7 +46,7 @@ butaca cines                       # los 24 complejos
 butaca cartelera --cine palermo    # qué se está dando
 butaca funciones --cine palermo    # horarios con butacas libres
 butaca estrenos --cine palermo     # preventa y próximos
-butaca elegir spiderman --cine palermo --fecha mañana --formato 2D --idioma SUB
+butaca recomendar spiderman --cine palermo --fecha mañana --personas 2 --formato 2D --idioma SUB
 butaca palermo                     # atajo de "funciones --cine"
 butaca schema                      # shapes JSON de cada comando, para agentes
 butaca cadenas                     # qué cadenas soporta
@@ -55,12 +55,13 @@ butaca cadenas                     # qué cadenas soporta
 Filtros de `funciones`: `--peli`, `--fecha`, `--formato`, `--idioma`, `--libres`,
 `--todas`.
 
-`elegir` acepta un título parcial, resuelve una sola película y función, y usa
-el ranking geométrico para proponer la mejor butaca libre. `--dry-run` elige la
-función con más disponibilidad, priorizando las que no son trasnoche, sin
-autenticar ni abrir una orden. `--preflight` valida sesión y precio
-sin abrirla. Solo abre una orden y hace el hold después de una confirmación
-interactiva o `--yes`.
+`recomendar` acepta un título parcial, resuelve la mejor función con lugares
+para `--personas` y propone el mejor grupo contiguo mediante un ranking
+geométrico. `--dry-run` elige la función sin autenticar ni abrir una orden.
+`--preflight` valida sesión y precio sin abrirla. Consultar el mapa necesita
+confirmación porque crea una orden, pero no hace hold. Devuelve el comando
+`reservar` exacto para continuar con esa misma orden. `elegir` conserva el flujo
+anterior que recomienda y hace el hold.
 
 ### Tu cine por defecto
 
@@ -138,7 +139,7 @@ Existe `butaca reservar`, que toma inventario real y funciona, pero por lo
 anterior su resultado no se puede pagar. Está fuera del camino principal a
 propósito.
 
-Los payloads de `reservar` y `elegir` exponen
+Los payloads de `reservar`, `recomendar` y `elegir` exponen
 `browserCheckoutAvailable: false`, `sideEffect` y `siteUrl`. `siteUrl` vuelve al
 sitio, pero no preserva la orden ni es una URL de checkout.
 

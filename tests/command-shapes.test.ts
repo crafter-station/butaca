@@ -110,4 +110,28 @@ describe("schema cubre todos los comandos (regresión)", () => {
       expect(s.shape, `${nombre} sin shape`).toBeDefined();
     }
   });
+
+  it("recomendar publica el mismo shape base que elegir", () => {
+    const elegir = SCHEMAS.elegir as { shape: Record<string, unknown> };
+    const recomendar = SCHEMAS.recomendar as { shape: Record<string, unknown> };
+    expect(recomendar.shape).toEqual(elegir.shape);
+  });
+});
+
+describe("errores de argumentos del CLI", () => {
+  it("mantiene el envelope JSON antes de resolver los flags", () => {
+    const result = Bun.spawnSync([
+      process.execPath,
+      new URL("../src/cli.ts", import.meta.url).pathname,
+      "recomendar",
+      "spiderman",
+      "--personas",
+      "0",
+      "--json",
+    ]);
+    const envelope = JSON.parse(result.stdout.toString());
+    expect(result.exitCode).toBe(1);
+    expect(envelope.ok).toBe(false);
+    expect(envelope.error.code).toBe("BAD_INPUT");
+  });
 });

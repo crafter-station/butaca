@@ -1,6 +1,6 @@
 ---
 name: butaca
-description: Consultar cartelera, complejos y disponibilidad de butacas de Cinemark Argentina desde la terminal. Usar cuando el usuario pregunte qué películas dan, en qué cine, a qué hora, en qué formato (2D, 3D, XD, D-BOX, 4D, PREMIER), o cuántas butacas quedan libres para una función. También cuando pida "qué veo hoy", "funciones en Palermo", "entradas para X película", o quiera elegir función por disponibilidad real de asientos. La mitad de lectura no necesita cuenta; ver el mapa de butacas y reservarlas sí. NO automatiza el pago.
+description: Consultar cartelera, complejos y disponibilidad de butacas de Cinemark Argentina desde la terminal. Usar cuando el usuario pregunte qué películas dan, en qué cine, a qué hora, en qué formato (2D, 3D, XD, D-BOX, 4D, PREMIER), cuántas butacas quedan libres o quiera recomendar una función y asientos contiguos según la cantidad de personas. También cuando pida "qué veo hoy", "funciones en Palermo" o "entradas para X película". La mitad de lectura no necesita cuenta; ver el mapa de butacas y reservarlas sí. NO automatiza el pago.
 ---
 
 # butaca
@@ -63,10 +63,11 @@ butaca funciones --cine <slug>                  # horarios + butacas libres
 butaca estrenos [--cine <slug>] [--todos]       # preventa y próximos estrenos
 butaca estrenos <busqueda> [--cine <slug>]      # un estreno, con sus ventas
 butaca estrenos --peli <busqueda>               # idem, con el flag del resto
-butaca elegir <busqueda> --cine <slug>           # función y mejor butaca
-               [--fecha hoy|mañana|YYYY-MM-DD]
-               [--formato 2D] [--idioma SUB] [--cantidad <n>]
-               [--dry-run|--preflight] [--yes]
+butaca recomendar <busqueda> --cine <slug>       # función y asientos contiguos
+                    [--fecha hoy|mañana|YYYY-MM-DD]
+                    [--formato 2D] [--idioma SUB] [--personas <n>]
+                    [--dry-run|--preflight] [--yes]
+butaca elegir <busqueda> --cine <slug>           # recomienda y hace hold
 butaca <cine-slug>                              # atajo de funciones --cine
 butaca schema [comando]                         # shapes con version
 ```
@@ -111,21 +112,22 @@ Dos cosas que el schema marca como notas y conviene saber:
 
 ## Workflows
 
-### Elegir función por disponibilidad real
+### Recomendar función y asientos juntos
 
 El caso más común. La pregunta no es "qué dan" sino "qué función todavía tiene
 butacas buenas".
 
 ```bash
-butaca elegir spiderman --cine palermo --fecha mañana --formato 2D --idioma SUB --cantidad 1 --mejor-asiento --dry-run
-butaca elegir spiderman --cine palermo --fecha mañana --formato 2D --idioma SUB --cantidad 1 --mejor-asiento --preflight
+butaca recomendar spiderman --cine palermo --fecha mañana --formato 2D --idioma SUB --personas 2 --dry-run
+butaca recomendar spiderman --cine palermo --fecha mañana --formato 2D --idioma SUB --personas 2 --preflight
 ```
 
 La primera llamada usa solo datos públicos. La segunda autentica y valida el
-precio, pero tampoco abre una orden. Para abrir el mapa y hacer el hold, pedí
-confirmación al usuario y repetí sin esos flags. En modo no interactivo hace
-falta `--yes`. La función elegida maximiza disponibilidad, pero prioriza una
-función del día sobre una trasnoche.
+precio, pero tampoco abre una orden. Para abrir el mapa y recomendar el mejor
+grupo contiguo, pedí confirmación al usuario y repetí sin esos flags. En modo no
+interactivo hace falta `--yes`. `recomendar` no hace hold: devuelve el comando
+`reservar` exacto en `meta.nextSteps`. La función elegida maximiza
+disponibilidad, pero prioriza una función del día sobre una trasnoche.
 
 Para explorar todas las alternativas sin elegir una:
 
@@ -230,7 +232,7 @@ traducción no es trivial y la API no acepta etiquetas.
 
 **No automatiza el pago ni puede transferir la orden al navegador.** Cinemark
 guarda el carrito en `sessionStorage` y `localStorage`, no en la cuenta ni en
-una URL. `reservar` y `elegir` devuelven `browserCheckoutAvailable: false` y un
+una URL. `reservar`, `recomendar` y `elegir` devuelven `browserCheckoutAvailable: false` y un
 `siteUrl` que solo vuelve al sitio para elegir de nuevo.
 
 No inventes un comando de pago ni sugieras que existe.
