@@ -130,8 +130,11 @@ async function main(): Promise<number> {
     args = parseArgs(argv);
   } catch (err) {
     const message = err instanceof ArgParseError ? err.message : String(err);
-    process.stderr.write(`${errRed("Error")} ${message}\n`);
-    return 1;
+    const machineMode = argv.includes("--json") || !process.stdout.isTTY;
+    return reportError(
+      machineMode,
+      new ApiError("BAD_INPUT", message, "Revisá los argumentos pasados."),
+    );
   }
 
   const flags = toFlags(args);
