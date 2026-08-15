@@ -21,7 +21,11 @@ if grep -q "npm warn publish errors corrected" "$TEST_DIR/publish.err"; then
   exit 1
 fi
 
-PACKAGE_NAME=$(npm pack --json | jq -r '.[0].filename')
+PACKAGE_NAME=$(npm pack --json | jq -r 'if type == "array" then .[0].filename elif type == "object" then (to_entries[0].value.filename // empty) else empty end')
+if [[ -z "$PACKAGE_NAME" ]]; then
+  echo "npm pack --json no devolvió un filename" >&2
+  exit 1
+fi
 PACKAGE_PATH="$ROOT/$PACKAGE_NAME"
 
 cd "$TEST_DIR"
