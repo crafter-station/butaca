@@ -183,6 +183,19 @@ NO_COLOR=1 butaca --help          # banner en texto plano
 
 ## 9. Superficie autenticada
 
+### 9.0 Recomendación agent-first
+
+```bash
+butaca recomendar spiderman --cine palermo --fecha mañana --personas 2 --formato 2D --idioma SUB --dry-run --json
+butaca recomendar spiderman --cine palermo --fecha mañana --personas 2 --formato 2D --idioma SUB --preflight --json
+```
+
+La primera llamada debe devolver la función elegida con `sideEffect: none` y
+un `nextSteps` que preserve `recomendar` y `--personas 2`. La segunda agrega el
+precio sin abrir una orden. Sin `--dry-run` ni `--preflight`, el comando exige
+confirmación antes de abrir una orden y devuelve un grupo contiguo sin hacer
+hold. El `nextSteps` debe reusar su `transIdTemp` con `reservar --orden`.
+
 Estos comandos necesitan cuenta de Cinemark. **Sin sesión todos deben fallar
 limpio y rápido, nunca colgarse pidiendo input.**
 

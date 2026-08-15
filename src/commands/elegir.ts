@@ -26,6 +26,7 @@ export interface ElegirOptions {
   dryRun: boolean;
   preflight: boolean;
   yes: boolean;
+  hold: boolean;
 }
 
 export function normalizeMovieQuery(value: string): string {
@@ -127,13 +128,24 @@ export function selectShowtime(
 }
 
 function commandFor(options: ElegirOptions): string {
-  const parts = ["butaca elegir", JSON.stringify(options.busqueda)];
+  const command = options.hold ? "elegir" : "recomendar";
+  const quantityFlag = options.hold ? "--cantidad" : "--personas";
+  const parts = [`butaca ${command}`, JSON.stringify(options.busqueda)];
   if (options.cine) parts.push("--cine", options.cine);
   if (options.fecha) parts.push("--fecha", options.fecha);
   if (options.formato) parts.push("--formato", options.formato);
   if (options.idioma) parts.push("--idioma", options.idioma);
-  parts.push("--cantidad", String(options.cantidad), "--mejor-asiento");
+  parts.push(quantityFlag, String(options.cantidad), "--mejor-asiento");
   return parts.join(" ");
+}
+
+export function reserveRecommendedCommand(
+  sessionId: string,
+  cine: string,
+  labels: string[],
+  transIdTemp: number,
+): string {
+  return `butaca reservar ${sessionId} --cine ${cine} --asientos ${labels.join(",")} --orden ${transIdTemp}`;
 }
 
 function priceData(raw: number) {
@@ -156,18 +168,19 @@ export async function runElegir(
   machineMode: boolean,
 ): Promise<number> {
   try {
+    const commandName = options.hold ? "elegir" : "recomendar";
     if (!options.busqueda.trim()) {
       throw new ApiError(
         "BAD_INPUT",
-        "elegir necesita una película",
-        "Ejemplo: butaca elegir spiderman --cine palermo --fecha mañana",
+        `${commandName} necesita una película`,
+        `Ejemplo: butaca ${commandName} spiderman --cine palermo --fecha mañana`,
         { retryable: false, sideEffect: "none" },
       );
     }
     if (!options.cine) {
       throw new ApiError(
         "BAD_INPUT",
-        "elegir necesita --cine <slug>",
+        `${commandName} necesita --cine <slug>`,
         "Corré `butaca cines` para ver los slugs disponibles.",
         { retryable: false, sideEffect: "none" },
       );
@@ -258,7 +271,7 @@ export async function runElegir(
     if (!options.yes && (machineMode || !stdin.isTTY)) {
       throw new ApiError(
         "BAD_INPUT",
-        "elegir necesita confirmación antes de abrir una orden real",
+        `${commandName} necesita confirmación antes de abrir una orden real`,
         `Revisá primero con --preflight y después corré: ${command} --yes`,
         { retryable: false, sideEffect: "none" },
       );
@@ -328,8 +341,36 @@ export async function runElegir(
       100;
     if (!machineMode) {
       process.stdout.write(
-        `${bold(movie.title)}  ${funcion.dateTime}hs  sala ${funcion.theater.room}\nButaca${labels.length > 1 ? "s" : ""}: ${bold(labels.join(", "))}  score ${score}  $${price.amount.toLocaleString("es-AR")}\n${dim("Side effect al confirmar: seat_held. No hay handoff al navegador.")}\n`,
+        `${bold(movie.title)}  ${funcion.dateTime}hs  sala ${funcion.theater.room}\nButaca${labels.length > 1 ? "s" : ""}: ${bold(labels.join(", "))}  score ${score}  $${price.amount.toLocaleString("es-AR")}\n`,
       );
+    }
+    if (!options.hold) {
+      const reserveCommand = reserveRecommendedCommand(
+        funcion.sessionId,
+        options.cine,
+        labels,
+        transIdTemp,
+      );
+      const payload = {
+        ...base,
+        price,
+        seats: suggested,
+        score,
+        transIdTemp,
+        seatHeld: false,
+        browserCheckoutAvailable: false,
+        sideEffect: "order_opened" as const,
+        retryable: false,
+      };
+      if (machineMode) printEnvelope(ok(payload, [reserveCommand]));
+      else
+        process.stdout.write(
+          `${dim("No se hizo hold. Para mantenerlas:")}\n${reserveCommand}\n`,
+        );
+      return 0;
+    }
+    if (!machineMode) {
+      process.stdout.write(`${dim("Side effect al confirmar: seat_held. No hay handoff al navegador.")}\n`);
       if (!options.yes && !(await confirm("¿Mantener estas butacas? [y/N] "))) {
         process.stdout.write(
           `Cancelado. La orden ${transIdTemp} quedó abierta, pero no se hizo el hold.\n`,

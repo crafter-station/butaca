@@ -40,6 +40,7 @@ const KNOWN_COMMANDS = [
   "butacas",
   "reservar",
   "elegir",
+  "recomendar",
   "cadenas",
   "config",
 ];
@@ -60,6 +61,7 @@ function takesValue(flag: string): boolean {
     "--email",
     "--password",
     "--cantidad",
+    "--personas",
   ].includes(flag);
 }
 
@@ -209,10 +211,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
         case "--password":
           result.password = value;
           break;
-        case "--cantidad": {
+        case "--cantidad":
+        case "--personas": {
           const parsed = Number(value);
           if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
-            throw new ArgParseError("--cantidad necesita un entero entre 1 y 10");
+            throw new ArgParseError(`${token} necesita un entero entre 1 y 10`);
           }
           result.cantidad = parsed;
           break;

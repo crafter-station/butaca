@@ -37,6 +37,13 @@ butaca reservar <sessionId>            hold real de butacas
        [--orden <transIdTemp>]         reusa la orden que abrió `butacas`
        [--dry-run]                     valida sin reservar
        [--yes]                         saltea la confirmación
+
+butaca recomendar <película>           mejor función y grupo contiguo
+       --cine <slug>
+       [--fecha hoy|mañana|YYYY-MM-DD]
+       [--personas <n>]
+       [--dry-run|--preflight]          no abre una orden
+       [--yes]                         confirma abrir una sola orden
 ```
 
 ## Trust ladder
@@ -46,13 +53,18 @@ Tres niveles, por consecuencia y no por comodidad.
 | Nivel | Comandos | Gate |
 |---|---|---|
 | **read** | `auth status` | ninguno |
-| **write-soft** | `butacas` | avisa que abre una orden; `--dry-run` disponible |
+| **write-soft** | `butacas`, `recomendar` | avisa que abre una orden; `--dry-run` disponible |
 | **write-hard** | `reservar` | confirmación explícita, audit log, `--dry-run` que ejercita el camino real |
 
 `butacas` es **write-soft y no read**, y esto es lo contraintuitivo del target:
 mirar el mapa exige `POST /order-tickets` antes, o sea consultar ya escribe. Un
 usuario que corre `butaca butacas` diez veces deja diez transacciones abiertas
 en el sistema de Cinemark. El comando tiene que decirlo.
+
+`recomendar` filtra y elige la función con datos públicos. Solo abre una orden
+después de confirmación para leer el mapa y calcular el mejor grupo contiguo.
+No hace hold. Devuelve el comando `reservar` que reusa esa orden si el usuario
+decide tomar las butacas.
 
 ## Credenciales
 

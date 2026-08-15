@@ -13,6 +13,7 @@ import { runEstrenos } from "./commands/estrenos.js";
 import { resolveRelativeDate, runElegir } from "./commands/elegir.js";
 import { runFunciones } from "./commands/funciones.js";
 import { runReservar } from "./commands/reservar.js";
+import { runRecomendar } from "./commands/recomendar.js";
 import { runSchema } from "./commands/schema.js";
 import { fetchTheaters } from "./api.js";
 import { printBanner } from "./foundation/banner.js";
@@ -20,7 +21,7 @@ import { ok, printEnvelope, resolveMachineMode, reportError } from "./format.js"
 import type { Flags } from "./format.js";
 import { blue, bold, dim, errBold, errDim, errRed, italic, padVisible, underline } from "./style.js";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 /** Comando en bold, flags en azul, placeholders en cursiva tenue. */
 function uso(comando: string, resto = "", nota = ""): string {
@@ -47,8 +48,10 @@ ${uso("", "[--idioma SUB|CASTELLANO] [--todas]")}
 ${uso("butaca estrenos", "[--cine <slug>] [--todos]", "preventa y próximos")}
 ${uso("butaca estrenos <peli>", "[--cine <slug>]", "un estreno, con ventas")}
 ${uso("butaca estrenos --peli <slug>", "", "idem, con el flag del resto")}
-${uso("butaca elegir <película>", "--cine <slug> --fecha mañana", "elige función y mejor butaca")}
-${uso("", "[--formato 2D] [--idioma SUB] [--cantidad n]")}
+${uso("butaca recomendar <película>", "", "mejor función y asientos juntos")}
+${uso("", "--cine <slug> --fecha mañana [--personas n]")}
+${uso("", "[--formato 2D] [--idioma SUB]")}
+${uso("butaca elegir <película>", "...", "recomienda y hace hold")}
 ${uso("butaca <cine-slug>", "", 'atajo de "funciones --cine"')}
 ${uso("butaca schema", "[comando]", "shapes JSON, para agentes")}
 ${uso("butaca cadenas", "", "qué cadenas de cine soporta")}
@@ -73,10 +76,11 @@ ${opcion("--fields <a,b>", "sólo estos campos en la salida")}
 ${opcion("--no-cache", "saltea el caché de 60s del CDN en todos los pedidos")}
 ${opcion("--open", "abre el link de compra en el navegador")}
 ${opcion("--numeros", "en butacas, muestra el número de cada asiento")}
-${opcion("--dry-run", "en butacas/reservar/elegir, no hace el write final")}
-${opcion("--yes", "en reservar/elegir, saltea la confirmación")}
-${opcion("--preflight", "en elegir, valida precio sin abrir una orden")}
-${opcion("--mejor-asiento", "en elegir, explicita el ranking central")}
+${opcion("--dry-run", "en butacas/reservar/elegir/recomendar, no hace el write final")}
+${opcion("--yes", "en reservar/elegir/recomendar, saltea la confirmación")}
+${opcion("--preflight", "en elegir/recomendar, valida precio sin abrir una orden")}
+${opcion("--mejor-asiento", "en elegir/recomendar, explicita el ranking central")}
+${opcion("--personas <n>", "alias de --cantidad para recomendar")}
 ${opcion("--help, -h", "esta ayuda")}
 ${opcion("--version, -v", "versión")}
 
@@ -262,6 +266,30 @@ async function main(): Promise<number> {
     case "elegir": {
       try {
         return await runElegir(
+          {
+            busqueda: args.positional.join(" ") || args.peli || "",
+            cine,
+            fecha: resolveRelativeDate(args.fecha),
+            formato: args.formato,
+            idioma: args.idioma,
+            cantidad: args.cantidad,
+            dryRun: args.dryRun,
+            preflight: args.preflight,
+            yes: args.yes,
+            hold: true,
+          },
+          flags,
+          machineMode,
+        );
+      } catch (error) {
+        const apiError = error instanceof ApiError ? error : new ApiError("BAD_INPUT", String(error), "Revisá los argumentos pasados.");
+        return reportError(machineMode, apiError);
+      }
+    }
+
+    case "recomendar": {
+      try {
+        return await runRecomendar(
           {
             busqueda: args.positional.join(" ") || args.peli || "",
             cine,

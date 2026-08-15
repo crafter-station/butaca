@@ -98,6 +98,20 @@ describe("parseArgs", () => {
     expect(args.mejorAsiento).toBe(true);
     expect(args.preflight).toBe(true);
   });
+
+  it("parsea recomendar con cantidad de personas", () => {
+    const args = parseArgs([
+      "recomendar",
+      "spiderman",
+      "--cine",
+      "palermo",
+      "--personas",
+      "2",
+    ]);
+    expect(args.command).toBe("recomendar");
+    expect(args.cine).toBe("palermo");
+    expect(args.cantidad).toBe(2);
+  });
 });
 
 describe("isKnownCommand", () => {
@@ -106,6 +120,7 @@ describe("isKnownCommand", () => {
     expect(isKnownCommand("cartelera")).toBe(true);
     expect(isKnownCommand("funciones")).toBe(true);
     expect(isKnownCommand("schema")).toBe(true);
+    expect(isKnownCommand("recomendar")).toBe(true);
   });
 
   it("no reconoce un slug de cine como comando", () => {

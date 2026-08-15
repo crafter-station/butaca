@@ -1,7 +1,7 @@
 {
   "name": "butaca",
-  "version": "0.1.0",
-  "description": "Cartelera, funciones y mapa de butacas de Cinemark Argentina desde la terminal. Agent-first: --json en todo, schema introspectable.",
+  "version": "0.2.0",
+  "description": "Cartelera, funciones y recomendación de butacas contiguas de Cinemark Argentina desde la terminal.",
   "license": "MIT",
   "author": "Railly Hugo",
   "homepage": "https://github.com/crafter-station/butaca#readme",

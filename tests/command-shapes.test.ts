@@ -110,4 +110,10 @@ describe("schema cubre todos los comandos (regresión)", () => {
       expect(s.shape, `${nombre} sin shape`).toBeDefined();
     }
   });
+
+  it("recomendar publica el mismo shape base que elegir", () => {
+    const elegir = SCHEMAS.elegir as { shape: Record<string, unknown> };
+    const recomendar = SCHEMAS.recomendar as { shape: Record<string, unknown> };
+    expect(recomendar.shape).toEqual(elegir.shape);
+  });
 });
