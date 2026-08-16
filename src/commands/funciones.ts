@@ -7,6 +7,7 @@ import {
   fetchShowtimesByTheater,
   fetchTheaters,
 } from "../api.js";
+import { comando as cmd } from "../providers.js";
 import type { Provider } from "../providers.js";
 import { formatLocalDateTime, parseSessionDateTime } from "../datetime.js";
 import { escapeText } from "../escape.js";
@@ -170,7 +171,7 @@ export function agruparPorPelicula(
       // El comando entero, no el slug pelado: se copia sin armarlo a mano.
       const comando =
         slug && cine
-          ? `\n  ${dim(`butaca funciones --cine ${cine} --peli ${slug}`)}`
+          ? `\n  ${dim(cmd(`funciones --cine ${cine} --peli ${slug}`))}`
           : "";
       const titulo = `${bold(nombre)}  ${dim("·")} ${meta}  ${dim(`· ${fs.length} funciones`)}${comando}`;
 
@@ -392,7 +393,7 @@ async function runFuncionesGraphql(
     const sugerida = visibles.find((f) => f.seats.available > 0) ?? visibles[0];
     if (sugerida) {
       out.push(
-        `\n${dim("Ver butacas:")} ${dim(`butaca butacas ${sugerida.sessionId} --cine ${options.cine}`)}`,
+        `\n${dim("Ver butacas:")} ${dim(cmd(`butacas ${sugerida.sessionId} --cine ${options.cine}`))}`,
       );
     }
 
@@ -552,7 +553,7 @@ export async function runFunciones(
       visibles[0];
     if (sugerida) {
       out.push(
-        `\n${dim("Ver butacas:")} ${dim(`butaca butacas ${sugerida.sessionId} --cine ${options.cine}`)}  ${dim(italic(`(las ${sugerida.dateTime.slice(-5)}; el número de cualquier otra función está en la columna butacas)`))}`,
+        `\n${dim("Ver butacas:")} ${dim(cmd(`butacas ${sugerida.sessionId} --cine ${options.cine}`))}  ${dim(italic(`(las ${sugerida.dateTime.slice(-5)}; el número de cualquier otra función está en la columna butacas)`))}`,
       );
     }
 

@@ -137,7 +137,7 @@ export function findProvider(id: string): Provider | null {
  * revisar su conexión. Fallar antes del request convierte eso en una
  * instrucción.
  */
-export function resolveProvider(id: string): Provider {
+export function resolveProvider(id: string, esCadenaGuardada = false): Provider {
   const p = findProvider(id);
   if (!p) {
     const ids = PROVIDERS.map((x) => x.id).join(", ");
@@ -147,9 +147,38 @@ export function resolveProvider(id: string): Provider {
     throw new Error(`${p.name} (${p.countryName}) todavía no está soportada. ${p.nota ?? ""}`.trim());
   }
   if (p.requiresRuntime === "bun" && !isBun()) {
-    throw new Error(mensajeRuntimeFaltante(p, runtimeName()));
+    throw new Error(mensajeRuntimeFaltante(p, runtimeName(), esCadenaGuardada));
   }
   return p;
+}
+
+/**
+ * Estado del prefijo con el que se imprimen los comandos sugeridos.
+ *
+ * Un comando que el CLI imprime tiene una sola función: que se copie y ande. Con
+ * una cadena que exige otro runtime, `butaca funciones ...` pelado se copia y
+ * choca contra el guard, o sea que el CLI enseña la invocación que él mismo
+ * rechaza. El prefijo lo fija el CLI una vez al resolver la cadena, igual que
+ * `setSource` y `setNoCache`.
+ */
+let prefijoComando = "butaca";
+let sufijoCadena = "";
+
+export function setInvocacion(p: Provider): void {
+  // `bun x` NO alcanza: respeta el shebang del paquete (#!/usr/bin/env node) y
+  // vuelve a caer en Node. Solo `--bun` fuerza el runtime.
+  prefijoComando = p.requiresRuntime === "bun" && !isBun() ? "bun --bun x butaca" : "butaca";
+  // Sin `--cadena` el comando copiado corre contra la cadena por defecto y
+  // devuelve otra cosa, o un NOT_FOUND si el slug es de esta.
+  sufijoCadena = p.id === DEFAULT_PROVIDER_ID ? "" : ` --cadena ${p.id}`;
+}
+
+/**
+ * Arma un comando listo para copiar: prefijo de runtime si hace falta, y la
+ * cadena explícita cuando no es la default.
+ */
+export function comando(resto: string): string {
+  return `${prefijoComando} ${resto}${sufijoCadena}`;
 }
 
 /**
@@ -158,7 +187,18 @@ export function resolveProvider(id: string): Provider {
  * justamente el runtime que pasa, así que la rama del `throw` nunca se ejecuta
  * acá y un test que reescribiera el texto a mano quedaría verde para siempre.
  */
-export function mensajeRuntimeFaltante(p: Provider, runtimeActual: string): string {
+export function mensajeRuntimeFaltante(
+  p: Provider,
+  runtimeActual: string,
+  esCadenaGuardada = false,
+): string {
+  // Si la cadena viene de la preferencia guardada y no de un flag, el usuario
+  // no la pidió en este comando: cada invocación suya, incluso `butaca cines`,
+  // choca con esto hasta que la cambie. Decirle "usá --cadena" no lo saca del
+  // estado; decirle cómo revertir la preferencia sí.
+  const salida = esCadenaGuardada
+    ? `Volvé a la cadena anterior con: butaca config set cadena ${DEFAULT_PROVIDER_ID}`
+    : `Para seguir sin instalar nada: butaca --cadena ${DEFAULT_PROVIDER_ID}`;
   return (
     `${p.name} necesita Bun y estás en ${runtimeActual}. ` +
     `Su servidor rechaza a cualquier otro cliente antes de responder, así que no es algo que el CLI pueda sortear. ` +
@@ -166,6 +206,6 @@ export function mensajeRuntimeFaltante(p: Provider, runtimeActual: string): stri
     // node) y termina corriendo bajo Node otra vez, o sea de vuelta en este
     // mismo error. El flag `--bun` es el que fuerza el runtime.
     `Instalá Bun con: curl -fsSL https://bun.sh/install | bash — después corré el mismo comando con "bun --bun x butaca". ` +
-    `Para seguir sin instalar nada: butaca --cadena ${DEFAULT_PROVIDER_ID}`
+    salida
   );
 }

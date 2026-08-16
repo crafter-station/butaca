@@ -4,6 +4,7 @@ import { ApiError, fetchTheaters } from "../api.js";
 import { escapeText } from "../escape.js";
 import { applyFields, ok, printEnvelope, renderTable, reportError } from "../format.js";
 import type { Flags } from "../format.js";
+import { comando } from "../providers.js";
 import type { Provider } from "../providers.js";
 import { bold, dim, italic, underline } from "../style.js";
 import type { RawTheater, Theater } from "../types.js";
@@ -87,7 +88,7 @@ export async function runCines(
             direccion: dim(t.address),
             // Sin encabezados de columna por bloque, el valor tiene que decir
             // solo qué es: el comando completo se lee y se copia entero.
-            comando: dim(`butaca ${t.slug}`),
+            comando: dim(comando(t.slug)),
           })),
           ["cine", "direccion", "comando"],
         )
