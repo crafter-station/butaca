@@ -1,4 +1,4 @@
-import { contarButacas, fetchCities, fetchSeats } from "../api-graphql.js";
+import { contarButacas, fetchCities, fetchSeats, toSeatMap } from "../api-graphql.js";
 import { ApiError, fetchMovies, fetchShowtimesByTheater, fetchTheaters } from "../api.js";
 import { buildTicketList, fetchPrices, openOrder, fetchSeatMap } from "../api-auth.js";
 import type { Provider } from "../providers.js";
@@ -193,14 +193,7 @@ async function runButacasSinOrden(
     }
 
     const conteo = contarButacas(map);
-    const filas = new Map<string, typeof map.seats>();
-    // `rowIndex` descendente: el upstream numera desde el fondo de la sala
-    // (rowIndex 0 es la fila L, la última), así que dibujarlo en su orden deja
-    // la fila A abajo. En la sala y en el sitio, A es la más cercana a la
-    // pantalla y va arriba.
-    for (const s of [...map.seats].sort((a, b) => b.rowIndex - a.rowIndex)) {
-      filas.set(s.row, [...(filas.get(s.row) ?? []), s]);
-    }
+    const seatMap = toSeatMap(map);
 
     if (machineMode) {
       printEnvelope(
@@ -209,39 +202,27 @@ async function runButacasSinOrden(
           cine: options.cine,
           maxQuantity: map.maxQuantity,
           seats: conteo,
-          filas: [...filas.entries()].map(([row, seats]) => ({
-            row,
-            libres: seats.filter((s) => s.status === "Empty").length,
-            total: seats.length,
+          areas: seatMap.areas.map((a) => ({
+            code: a.code,
+            filas: [...new Set(a.seats.map((x) => x.row))].map((row) => ({
+              row,
+              libres: a.seats.filter((x) => x.row === row && x.statusId === 0).length,
+              total: a.seats.filter((x) => x.row === row).length,
+            })),
           })),
         }),
       );
       return 0;
     }
 
-    const ancho = Math.max(...[...filas.values()].map((s) => s.length));
-    const out: string[] = [
-      `${bold(`Función ${options.sessionId}`)} ${dim(`· ${options.cine}`)}`,
-      `${conteo.available} libres de ${conteo.capacity} ${dim(`(${conteo.pct}%)`)} ${dim(`· hasta ${map.maxQuantity} por compra`)}`,
-      "",
-      // Sin esto el mapa no dice hacia dónde se mira, y la fila A puede leerse
-      // como la del fondo.
-      `      ${dim("─".repeat(Math.max(ancho, 8)))}`,
-      `      ${dim("PANTALLA".padStart(Math.floor((Math.max(ancho, 8) + 8) / 2)))}`,
-      "",
-    ];
-    for (const [row, seats] of filas) {
-      const dibujo = seats
-        .sort((a, b) => a.columnIndex - b.columnIndex)
-        .map((s) => (s.status === "Empty" ? "·" : "×"))
-        .join("");
-      out.push(`  ${bold(row.padEnd(3))} ${dibujo}`);
-    }
-    out.push("");
-    out.push(dim("· libre   × ocupado o reservado"));
-    out.push(dim(`Comprar: ${provider.siteBase}`));
-
-    process.stdout.write(`${out.join("\n")}\n`);
+    // El mismo renderer que Cinemark: la sala se lee igual en las dos cadenas,
+    // y `--numeros` funciona en ambas sin duplicar el dibujo.
+    process.stdout.write(`${bold(`Función ${options.sessionId}`)} ${dim(`· ${options.cine}`)}\n`);
+    process.stdout.write(
+      `${dim(`${conteo.available} libres de ${conteo.capacity} (${conteo.pct}%)`)}  ${dim("·")} ${dim(`hasta ${map.maxQuantity} por compra`)}\n\n`,
+    );
+    process.stdout.write(`${renderSeatMap(seatMap, { numerada: flags.numeros })}\n`);
+    process.stdout.write(`${dim(`Comprar: ${provider.siteBase}`)}\n`);
     return 0;
   } catch (err) {
     const apiError =

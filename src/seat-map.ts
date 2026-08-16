@@ -402,10 +402,18 @@ export function renderSeatMap(seatMap: SeatMap, options: RenderSeatMapOptions = 
   lines.push("");
   // Las filas son números, así que "12" sería ambiguo entre fila 1 asiento 2 y
   // fila 12. El guion lo desambigua y es lo que espera --asientos.
+  //
+  // El ejemplo sale de una butaca real del mapa, no de una constante: en una
+  // cadena las filas son números y en otra son letras (A-L), así que un "7-12"
+  // fijo enseña un formato que esa sala no usa.
+  const muestra = seatMap.areas.flatMap((a) => a.seats).find((s) => s.statusId === 0);
+  const ejemplo = muestra ? `${muestra.row}-${muestra.number}` : "7-12";
   lines.push(
     numerada
       ? dim("El número de adentro es el asiento; el de la izquierda, la fila. Se pide fila-asiento.")
-      : dim("Las butacas se nombran fila-asiento, por ejemplo 7-12.  --numeros las muestra en el mapa"),
+      : dim(
+          `Las butacas se nombran fila-asiento, por ejemplo ${ejemplo}.  --numeros las muestra en el mapa`,
+        ),
   );
 
   return lines.join("\n");

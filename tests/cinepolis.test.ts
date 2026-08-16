@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cineEfectivo, setPref } from "../src/prefs.js";
-import { contarButacas } from "../src/api-graphql.js";
+import { contarButacas, toSeatMap } from "../src/api-graphql.js";
 import { BUTACAS_MAX_LOOKUPS } from "../src/commands/funciones.js";
 import type { CinepolisSeatMap } from "../src/api-graphql.js";
 import {
@@ -237,5 +237,45 @@ describe("contarButacas", () => {
 
   it("una sala llena da 0 por ciento", () => {
     expect(contarButacas(mk(["Sold", "Sold"])).pct).toBe(0);
+  });
+});
+
+describe("mapa de butacas compartido", () => {
+  const mk = (rows: Array<{ row: string; rowIndex: number; statuses: string[] }>) => ({
+    maxQuantity: 10,
+    seats: rows.flatMap((r) =>
+      r.statuses.map((status, i) => ({
+        id: `${r.row}${i}`,
+        status,
+        seatStyle: "",
+        row: r.row,
+        columnIndex: i,
+        rowIndex: r.rowIndex,
+        areaNumber: 0,
+      })),
+    ),
+  });
+
+  // Se dibuja con el mismo renderer que Cinemark en vez de uno propio: la sala
+  // se lee igual en las dos cadenas y --numeros funciona en ambas.
+  it("mapea los estados a los ids del contrato compartido", () => {
+    const sm = toSeatMap(mk([{ row: "A", rowIndex: 0, statuses: ["Empty", "Sold", "Companion"] }]));
+    const ids = sm.areas[0]?.seats.map((s) => s.statusId);
+    expect(ids).toEqual([0, 1, 4]);
+    expect(sm.summary.available).toBe(1);
+    expect(sm.summary.accessible).toBe(1);
+  });
+
+  // Un estado que no vimos no se puede ofrecer como libre: no comprar una butaca
+  // que existe es más barato que ofrecer una que no se puede comprar.
+  it("un estado desconocido no queda disponible", () => {
+    const sm = toSeatMap(mk([{ row: "A", rowIndex: 0, statuses: ["EstadoNuevo"] }]));
+    expect(sm.areas[0]?.seats[0]?.statusId).toBe(1);
+    expect(sm.summary.available).toBe(0);
+  });
+
+  it("conserva la etiqueta de fila del upstream", () => {
+    const sm = toSeatMap(mk([{ row: "L", rowIndex: 0, statuses: ["Empty"] }]));
+    expect(sm.areas[0]?.seats[0]?.row).toBe("L");
   });
 });

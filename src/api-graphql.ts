@@ -13,6 +13,8 @@
 
 import { ApiError } from "./api.js";
 import type { Provider } from "./providers.js";
+import { seatStatusInfo } from "./seat-map.js";
+import type { Seat, SeatMap } from "./seat-map.js";
 
 const TIMEOUT_MS = 15000;
 
@@ -560,4 +562,61 @@ export function contarButacas(map: CinepolisSeatMap): {
   const available = map.seats.filter((s) => s.status === "Empty").length;
   const pct = capacity > 0 ? Math.round((available / capacity) * 100) : 0;
   return { available, capacity, pct };
+}
+
+/**
+ * Convierte el mapa de Cinépolis al `SeatMap` que ya dibuja `renderSeatMap`.
+ *
+ * Existe para que las dos cadenas se vean iguales: el renderer compartido
+ * resuelve pantalla, colores, numeración y `--numeros`, y mantener un segundo
+ * dibujante para esta cadena significaría dos salidas distintas para la misma
+ * pregunta.
+ *
+ * Los estados mapean a los ids del contrato de Cinemark:
+ *  - `Empty` → 0 (disponible)
+ *  - `Sold` → 1 (no disponible)
+ *  - `Special` y `Companion` → 4 (accesibilidad; ni libre ni vendida)
+ *  - cualquier otro → 1, porque no ofrecer una butaca que existe es más barato
+ *    que ofrecer una que no se puede comprar.
+ *
+ * `gridRow` se pasa tal cual: el upstream numera desde el fondo (rowIndex 0 es
+ * la última fila) y `renderSeatMap` ya recorre al revés para dejar la fila A
+ * pegada a la pantalla.
+ */
+export function toSeatMap(map: CinepolisSeatMap): SeatMap {
+  const seats: Seat[] = [];
+  let available = 0;
+  let accessible = 0;
+  let maxRow = 0;
+  let maxCol = 0;
+
+  for (const s of map.seats) {
+    // El default es 1 (no disponible), no 4: un estado que no vimos no se puede
+    // ofrecer como comprable. `Special` y `Companion` son los únicos de
+    // accesibilidad observados, y se nombran explícitamente.
+    const statusId =
+      s.status === "Empty"
+        ? 0
+        : s.status === "Special" || s.status === "Companion"
+          ? 4
+          : 1;
+    if (statusId === 0) available++;
+    if (statusId === 4) accessible++;
+    maxRow = Math.max(maxRow, s.rowIndex + 1);
+    maxCol = Math.max(maxCol, s.columnIndex + 1);
+    seats.push({
+      row: s.row,
+      number: String(s.columnIndex + 1),
+      gridRow: String(s.rowIndex + 1),
+      gridNumber: String(s.columnIndex + 1),
+      status: seatStatusInfo(statusId).name,
+      statusId,
+    });
+  }
+
+  return {
+    areas: [{ code: "GENERAL", number: "1", seats }],
+    summary: { total: seats.length, available, accessible, broken: 0 },
+    screen: { rows: maxRow, columns: maxCol },
+  };
 }
