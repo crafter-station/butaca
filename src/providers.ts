@@ -153,27 +153,35 @@ export function resolveProvider(id: string, esCadenaGuardada = false): Provider 
 }
 
 /**
- * Sufijo con el que se imprimen los comandos sugeridos.
+ * Invocación con la que se imprimen los comandos sugeridos.
  *
- * Un comando que el CLI imprime tiene una sola función: que se copie y ande.
- * Sin `--cadena`, el comando copiado corre contra la cadena por defecto y
- * devuelve otra cosa, o un NOT_FOUND si el slug pertenece a esta. Lo fija el CLI
- * una vez al resolver la cadena, igual que `setSource` y `setNoCache`.
+ * Un comando que el CLI imprime tiene una sola función: que se copie y ande. El
+ * usuario lo pega en otra terminal, donde `butaca` es el binario instalado, y
+ * ese binario tiene shebang de Node. Así que la invocación impresa depende de lo
+ * que la **cadena exige**, no de bajo qué runtime estamos corriendo ahora.
  *
- * NO lleva prefijo de runtime: bajo un runtime que la cadena no acepta,
- * `resolveProvider` corta antes de que se imprima comando alguno, y bajo el
- * runtime correcto el prefijo sobra. Un `bun --bun x` acá sería una rama que
- * nunca se ejecuta.
+ * Es la distinción que rompió 0.3.4: se quitó el prefijo razonando que "bajo Bun
+ * sobra". No sobra. Bajo Bun el comando sale bien acá y falla cuando se pega en
+ * una terminal donde `butaca` vuelve a ser Node, que es el único lugar donde el
+ * usuario lo va a usar.
+ *
+ * Dos piezas:
+ *  - prefijo: `bun --bun x butaca` cuando la cadena declara `requiresRuntime`.
+ *    `bun x` no alcanza, respeta el shebang y cae en Node otra vez.
+ *  - sufijo `--cadena`: sin él el comando corre contra la cadena por defecto y
+ *    devuelve otra cosa, o un NOT_FOUND si el slug pertenece a esta.
  */
+let prefijoComando = "butaca";
 let sufijoCadena = "";
 
 export function setInvocacion(p: Provider): void {
+  prefijoComando = p.requiresRuntime === "bun" ? "bun --bun x butaca" : "butaca";
   sufijoCadena = p.id === DEFAULT_PROVIDER_ID ? "" : ` --cadena ${p.id}`;
 }
 
-/** Arma un comando listo para copiar, con la cadena explícita si no es la default. */
+/** Arma un comando listo para copiar: runtime correcto y cadena explícita. */
 export function comando(resto: string): string {
-  return `butaca ${resto}${sufijoCadena}`;
+  return `${prefijoComando} ${resto}${sufijoCadena}`;
 }
 
 /**

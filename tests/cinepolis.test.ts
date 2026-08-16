@@ -90,10 +90,16 @@ describe("comandos sugeridos", () => {
   // que exige otro runtime, `butaca funciones ...` pelado se copia y choca
   // contra el guard: el CLI enseñaba la invocación que él mismo rechaza.
   // Encontrado por Hunter copiando una fila de la tabla.
-  it("no lleva prefijo de runtime: esa rama nunca se ejecutaría", () => {
+  // El comando impreso se pega en otra terminal, donde `butaca` es el binario
+  // instalado con shebang de Node. Así que el prefijo depende de lo que la
+  // cadena exige, no del runtime actual. 0.3.4 lo quitó razonando "bajo Bun
+  // sobra" y rompió justo el caso real: Hunter copió una fila desde una sesión
+  // con Bun y el comando falló al pegarlo.
+  it("lleva el prefijo de runtime que la cadena exige, aunque ya estemos en Bun", () => {
+    expect(isBun()).toBe(true);
     setInvocacion(resolveProvider("cinepolis-ar"));
     expect(comando("funciones --cine x")).toBe(
-      "butaca funciones --cine x --cadena cinepolis-ar",
+      "bun --bun x butaca funciones --cine x --cadena cinepolis-ar",
     );
   });
 
