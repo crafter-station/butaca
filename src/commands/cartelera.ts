@@ -1,7 +1,10 @@
+import { fetchMovies as fetchCinepolisMovies } from "../api-graphql.js";
+import type { CinepolisMovie } from "../api-graphql.js";
 import { ApiError, fetchMovies, fetchTheaters } from "../api.js";
 import { escapeText } from "../escape.js";
 import { applyFields, ok, printEnvelope, renderTable, reportError } from "../format.js";
 import type { Flags } from "../format.js";
+import type { Provider } from "../providers.js";
 import { blue, bold, dim, formatearDuracion, italic } from "../style.js";
 import type { CarteleraMovie, RawCarteleraMovie } from "../types.js";
 
@@ -22,31 +25,61 @@ export function toCarteleraMovie(raw: RawCarteleraMovie): CarteleraMovie {
   };
 }
 
+/**
+ * Cinépolis no publica `corporateId` ni `premiere` en su cartelera, y su `id` ya
+ * es el slug. Los campos del contrato se mantienen: `corporateId` repite el id
+ * porque es lo que la cadena usa para cruzar película con funciones, y
+ * `premiere` queda en false porque el dato no existe (inventarlo sería peor que
+ * declararlo ausente).
+ */
+function cinepolisToCarteleraMovie(m: CinepolisMovie): CarteleraMovie {
+  return {
+    id: m.id,
+    corporateId: m.id,
+    slug: m.id,
+    title: escapeText(m.name),
+    runTime: m.length,
+    rating: escapeText(m.rating),
+    formats: m.formats.map((f) => escapeText(f)),
+    premiere: false,
+  };
+}
+
 export async function runCartelera(
+  provider: Provider,
   options: CarteleraOptions,
   flags: Flags,
   machineMode: boolean,
 ): Promise<number> {
   try {
-    let theaterId: string | undefined;
-    if (options.cine) {
-      const theaters = await fetchTheaters();
-      const theater = theaters.find((t) => t.slug === options.cine);
-      if (!theater) {
-        return reportError(
-          machineMode,
-          new ApiError(
-            "NOT_FOUND",
-            `No existe un cine con slug "${options.cine}"`,
-            "Corré `butaca cines` para ver los slugs disponibles.",
-          ),
-        );
+    let movies: CarteleraMovie[];
+
+    if (provider.kind === "graphql") {
+      // Acá el filtro por cine es el slug mismo: no hay que resolverlo contra el
+      // listado de cines primero, como sí pasa en REST.
+      const raw = await fetchCinepolisMovies(provider, options.cine ?? undefined);
+      movies = raw.map(cinepolisToCarteleraMovie);
+    } else {
+      let theaterId: string | undefined;
+      if (options.cine) {
+        const theaters = await fetchTheaters();
+        const theater = theaters.find((t) => t.slug === options.cine);
+        if (!theater) {
+          return reportError(
+            machineMode,
+            new ApiError(
+              "NOT_FOUND",
+              `No existe un cine con slug "${options.cine}"`,
+              "Corré `butaca cines` para ver los slugs disponibles.",
+            ),
+          );
+        }
+        theaterId = String(theater.id);
       }
-      theaterId = String(theater.id);
+      const raw = await fetchMovies(theaterId);
+      movies = raw.map(toCarteleraMovie);
     }
 
-    const raw = await fetchMovies(theaterId);
-    const movies = raw.map(toCarteleraMovie);
     const nextSteps =
       movies.length > 0 && movies[0]
         ? [

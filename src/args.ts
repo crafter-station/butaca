@@ -15,6 +15,7 @@ export interface ParsedArgs {
   yes: boolean;
   fields: string[] | null;
   cine: string | null;
+  cadena: string | null;
   peli: string | null;
   fecha: string | null;
   formato: string | null;
@@ -50,6 +51,7 @@ export class ArgParseError extends Error {}
 function takesValue(flag: string): boolean {
   return [
     "--cine",
+    "--cadena",
     "--peli",
     "--fecha",
     "--formato",
@@ -81,6 +83,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     yes: false,
     fields: null,
     cine: null,
+    cadena: null,
     peli: null,
     fecha: null,
     formato: null,
@@ -178,6 +181,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
       switch (token) {
         case "--cine":
           result.cine = value;
+          break;
+        case "--cadena":
+          result.cadena = value;
           break;
         case "--peli":
           result.peli = value;

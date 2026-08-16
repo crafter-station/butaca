@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { buildButacasPayload, runButacas } from "../src/commands/butacas.js";
 import { runReservar } from "../src/commands/reservar.js";
+import { resolveProvider } from "../src/providers.js";
 import type { Flags } from "../src/format.js";
 import { readdir } from "node:fs/promises";
 import { SCHEMAS } from "../src/commands/schema.js";
@@ -40,8 +41,16 @@ function readEnvelope(): { ok: boolean; error?: { code: string; message: string;
 }
 
 describe("butaca butacas: shape JSON, sin red", () => {
+  const CINEMARK = resolveProvider("cinemark-ar");
+  const CINEPOLIS = resolveProvider("cinepolis-ar");
+
   it("sin --cine, BAD_INPUT antes de tocar la red", async () => {
-    const code = await runButacas({ sessionId: "159037", cine: null, dryRun: false }, FLAGS, true);
+    const code = await runButacas(
+      CINEMARK,
+      { sessionId: "159037", cine: null, dryRun: false },
+      FLAGS,
+      true,
+    );
     expect(code).toBe(1);
     const envelope = readEnvelope();
     expect(envelope.ok).toBe(false);
@@ -50,10 +59,30 @@ describe("butaca butacas: shape JSON, sin red", () => {
   });
 
   it("sin --cine, incluso en --dry-run sigue pidiendo el cine", async () => {
-    const code = await runButacas({ sessionId: "159037", cine: null, dryRun: true }, FLAGS, true);
+    const code = await runButacas(
+      CINEMARK,
+      { sessionId: "159037", cine: null, dryRun: true },
+      FLAGS,
+      true,
+    );
     expect(code).toBe(1);
     const envelope = readEnvelope();
     expect(envelope.error?.code).toBe("BAD_INPUT");
+  });
+
+  // La cadena que no abre orden toma otro camino entero, así que la misma
+  // garantía hay que probarla ahí también: sin --cine no se toca la red.
+  it("en una cadena sin orden, sin --cine también corta antes de la red", async () => {
+    const code = await runButacas(
+      CINEPOLIS,
+      { sessionId: "131742", cine: null, dryRun: false },
+      FLAGS,
+      true,
+    );
+    expect(code).toBe(1);
+    const envelope = readEnvelope();
+    expect(envelope.error?.code).toBe("BAD_INPUT");
+    expect(envelope.error?.message).toContain("--cine");
   });
 });
 

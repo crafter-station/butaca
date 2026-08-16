@@ -1,3 +1,5 @@
+import { contarButacas, fetchBillboard, fetchSeats } from "../api-graphql.js";
+import type { CinepolisShowtime } from "../api-graphql.js";
 import {
   ApiError,
   fetchMovies,
@@ -5,6 +7,7 @@ import {
   fetchShowtimesByTheater,
   fetchTheaters,
 } from "../api.js";
+import type { Provider } from "../providers.js";
 import { formatLocalDateTime, parseSessionDateTime } from "../datetime.js";
 import { escapeText } from "../escape.js";
 import { sparkline } from "@crafter/charts";
@@ -232,11 +235,205 @@ export function matchesLibres(funcion: Funcion, libres: number | null): boolean 
   return funcion.seats.available >= libres;
 }
 
-export async function runFunciones(
+/**
+ * Convierte una función de Cinépolis al shape publicado.
+ *
+ * `seats` queda en cero: a diferencia de Cinemark, su cartelera no trae ninguna
+ * ocupación (el campo `availability` que sí trae es un color hexadecimal de UI,
+ * no un conteo). El número real exige una consulta de butacas por función, que
+ * es lo que hace `completarButacas`.
+ */
+function cinepolisToFuncion(s: CinepolisShowtime): Funcion {
+  return {
+    sessionId: s.sessionId,
+    movie: { corporateId: s.movieId, name: escapeText(s.movieId) },
+    theater: { id: s.cinemaVistaId, room: escapeText(s.screen) },
+    // Ya viene como hora local sin sufijo de zona; formatLocalDateTime espera
+    // las partes, así que se reusa el mismo parser que Cinemark.
+    dateTime: formatLocalDateTime(parseSessionDateTime(s.datetime)),
+    displayDate: s.date,
+    format: escapeText(s.format),
+    language: escapeText(s.language),
+    seats: { available: 0, capacity: 0, pct: 0 },
+  };
+}
+
+/**
+ * Completa la ocupación de cada función con una consulta de butacas.
+ *
+ * Es una llamada por función, así que solo se hace cuando el usuario pidió
+ * filtrar por butacas libres o cuando ya se acotó el listado. Una función que
+ * falle queda en cero en vez de tumbar el comando entero: el resto de la
+ * cartelera sigue siendo útil.
+ */
+async function completarButacas(
+  provider: Provider,
+  funciones: Funcion[],
+): Promise<Funcion[]> {
+  return Promise.all(
+    funciones.map(async (f) => {
+      try {
+        const map = await fetchSeats(provider, f.sessionId, f.theater.id);
+        return { ...f, seats: contarButacas(map) };
+      } catch {
+        return f;
+      }
+    }),
+  );
+}
+
+/**
+ * Funciones de una cadena GraphQL.
+ *
+ * Vive aparte del camino REST por una diferencia real de la fuente, no por
+ * estilo: Cinemark devuelve la ocupación dentro de cada función, Cinépolis
+ * obliga a una consulta de butacas por función. Eso cambia cuándo se puede
+ * filtrar por `--libres` y cuánto cuesta el comando.
+ */
+async function runFuncionesGraphql(
+  provider: Provider,
   options: FuncionesOptions,
   flags: Flags,
   machineMode: boolean,
 ): Promise<number> {
+  try {
+    const board = await fetchBillboard(provider, options.cine);
+    if (board.showtimes.length === 0) {
+      return reportError(
+        machineMode,
+        new ApiError(
+          "NOT_FOUND",
+          `No hay funciones para el cine "${options.cine}"`,
+          "Corré `butaca cines` para ver los slugs disponibles.",
+        ),
+      );
+    }
+
+    let funciones = board.showtimes
+      .filter((s) => !options.peli || s.movieId === options.peli)
+      .map(cinepolisToFuncion)
+      .filter((f) => matchesFecha(f, options.fecha))
+      .filter((f) => matchesFormato(f, options.formato))
+      .filter((f) => matchesIdioma(f, options.idioma))
+      .sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+
+    if (options.peli && funciones.length === 0) {
+      return reportError(
+        machineMode,
+        new ApiError(
+          "NOT_FOUND",
+          `No existe la película "${options.peli}" en el cine "${options.cine}"`,
+          `Corré \`butaca cartelera --cine ${options.cine}\` para ver el slug correcto.`,
+        ),
+      );
+    }
+
+    // Una consulta de butacas por función, así que se cuenta sobre lo que
+    // realmente se va a mostrar. El humano ve un día por defecto, y consultar la
+    // programación entera de un cine serían ~200 pedidos para tirar el 95%.
+    const acotarDia = !options.fecha && !flags.todas && !machineMode;
+    const primerDiaPrevio = funciones[0]?.displayDate;
+    const aConsultar =
+      acotarDia && primerDiaPrevio
+        ? funciones.filter((f) => f.displayDate === primerDiaPrevio)
+        : funciones;
+
+    // Cuando el usuario ya acotó (por fecha o por película) pidió estas
+    // funciones y no otras, así que se consultan aunque pasen el tope: el tope
+    // existe para que un pedido amplio no dispare doscientas llamadas, no para
+    // recortar un pedido específico.
+    const acotoElUsuario = options.fecha !== null || options.peli !== null;
+    const necesitaButacas =
+      options.libres !== null || acotoElUsuario || aConsultar.length <= BUTACAS_MAX_LOOKUPS;
+    if (necesitaButacas) {
+      const conButacas = await completarButacas(provider, aConsultar);
+      const porId = new Map(conButacas.map((f) => [f.sessionId, f]));
+      funciones = funciones
+        .map((f) => porId.get(f.sessionId) ?? f)
+        .filter((f) => (porId.has(f.sessionId) ? matchesLibres(f, options.libres) : true));
+    }
+
+    if (machineMode) {
+      const jsonRows = applyFields(
+        funciones as unknown as Array<Record<string, unknown>>,
+        flags.fields,
+      );
+      printEnvelope(ok(jsonRows));
+      return 0;
+    }
+
+    const acotar = !options.fecha && !flags.todas;
+    const primerDia = funciones[0]?.displayDate;
+    const visibles = acotar ? funciones.filter((f) => f.displayDate === primerDia) : funciones;
+
+    const out: string[] = [];
+    if (acotar && primerDia) {
+      out.push(encabezadoDia(primerDia, visibles.length));
+    }
+
+    if (flags.fields) {
+      out.push(renderTable(visibles as unknown as Array<Record<string, unknown>>, flags.fields));
+    } else {
+      // Los ids de película de Cinépolis ya son slugs legibles, así que el mapa
+      // de slugs es la identidad y no hace falta resolverlo con otra llamada.
+      const slugs = new Map(visibles.map((f) => [f.movie.corporateId, f.movie.corporateId]));
+      out.push(agruparPorPelicula(visibles, slugs, options.cine));
+    }
+
+    if (!necesitaButacas) {
+      out.push(
+        `\n${dim(italic(`Butacas libres no consultadas: son ${funciones.length} funciones y cada una es un pedido aparte. Acotá con --fecha o --peli para verlas.`))}`,
+      );
+    }
+
+    const sugerida = visibles.find((f) => f.seats.available > 0) ?? visibles[0];
+    if (sugerida) {
+      out.push(
+        `\n${dim("Ver butacas:")} ${dim(`butaca butacas ${sugerida.sessionId} --cine ${options.cine}`)}`,
+      );
+    }
+
+    const destino = `${provider.siteBase}/cartelera/${encodeURIComponent(options.cine)}`;
+    if (flags.open) {
+      const r = await openUrl(destino);
+      out.push(
+        `\n${dim(r.opened ? `Abriendo ${linkCorto(destino)}` : `Abrilo vos: ${linkCorto(destino)}`)}`,
+      );
+    } else {
+      out.push(`\n${dim(`Comprar: ${linkCorto(destino)}`)}  ${dim(italic("--open lo abre"))}`);
+    }
+
+    process.stdout.write(`${out.join("\n")}\n`);
+    return 0;
+  } catch (err) {
+    const apiError =
+      err instanceof ApiError
+        ? err
+        : new ApiError("UPSTREAM_ERROR", String(err), "Error inesperado, reportalo.");
+    return reportError(machineMode, apiError);
+  }
+}
+
+/**
+ * Tope de consultas de butacas en una sola corrida.
+ *
+ * No es un límite inventado: cada función es un pedido HTTP a un servicio de
+ * terceros, y la cartelera completa de un cine llega a 242 funciones. El valor
+ * cubre un día típico de un cine (los diez cines medidos van de 68 a 242
+ * funciones repartidas en 5 a 19 fechas) sin convertir un comando de lectura en
+ * doscientos pedidos.
+ */
+const BUTACAS_MAX_LOOKUPS = 40;
+
+export async function runFunciones(
+  provider: Provider,
+  options: FuncionesOptions,
+  flags: Flags,
+  machineMode: boolean,
+): Promise<number> {
+  if (provider.kind === "graphql") {
+    return runFuncionesGraphql(provider, options, flags, machineMode);
+  }
   try {
     const theaters = await fetchTheaters();
     const theater = theaters.find((t) => t.slug === options.cine);

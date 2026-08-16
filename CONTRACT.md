@@ -6,10 +6,49 @@ Decided before code, per cli-build Phase 2. This file is the published contract.
 
 Audience: people in Buenos Aires who want cinema tickets. Not developers.
 Target: **npm with a Node shebang**. The native binary via `scriptc` was the
-first choice by audience, and its own coverage gate blocked it: `fetch` and
-`AbortController` have no lowering yet. See the case for the measurement.
-Rule followed: written against Node's API surface (`fs`, `path`, `process`,
-`fetch`) so npm and source targets stay reachable without a rewrite.
+first choice by audience, and its own coverage gate blocked it. Rule followed:
+written against Node's API surface (`fs`, `path`, `process`, `fetch`) so npm and
+source targets stay reachable without a rewrite.
+
+**Update 2026-08-16.** That gate moved. `scriptc coverage` with 0.0.32 reports
+95% (1816/1897 statements) on `src/cli.ts` and **neither `fetch` nor
+`AbortController` appears among the blockers** — a `fetch`-only spike compiles
+100% static. What still blocks a native build is the terminal half:
+`node:readline/promises`, `WriteStream.write`, `ReadStream.isTTY`, `new Date`
+with 3 args, `toLocaleString("es-AR")`, plus 14 sites that need `--dynamic`
+(including `@crafter/charts`). Those are exactly what `elegir` and `reservar`
+use, so the native binary is closer but not free.
+
+It also would not have helped the case that prompted the re-measure: the
+compiled binary **is blocked by Cinépolis all the same** (403), while the same
+binary reads Cinemark fine. See "Runtime per chain" below.
+
+## Runtime per chain
+
+One chain's edge rejects clients that do not look like a browser. Measured
+2026-08-16 with the same query, same headers, same IP, same minutes; the Cinemark
+column is the control that proves the client works:
+
+| client | Cinépolis | Cinemark |
+|---|---|---|
+| curl (OpenSSL) | 403 | 200 |
+| Node `fetch` (undici/OpenSSL) | 403 | 200 |
+| native `scriptc` binary | 403 | 200 |
+| Chrome headless | 403 | — |
+| **Bun `fetch` (BoringSSL)** | **200** | 200 |
+| Chrome headed | 200 | — |
+
+So **`cinemark-ar` runs on any runtime and `cinepolis-ar` needs Bun.** A chain
+declares this with `requiresRuntime` in the provider registry, and
+`resolveProvider` rejects the combination *before* any request: under Node the
+user gets an instruction (how to install Bun, and how to keep going without it)
+instead of a 403 that reads like "the API is down".
+
+It is not the IP (`cf-ray: ...-EZE`, an Argentine exit), not the method, not the
+payload, and not the api key: a bare GET is refused too. It is not purely a TLS
+fingerprint either, since Chrome headless uses BoringSSL like Bun and is still
+refused. Logging in cannot help: the 403 lands on the CORS preflight, which by
+browser design carries no cookies and no `Authorization`.
 
 ## Scope
 
@@ -20,6 +59,20 @@ writes to a third party's system and takes real inventory.
 
 Everything below is read-only: every command is a GET against a public endpoint,
 so nothing here can cost anyone anything.
+
+**Whether `butacas` is read-only depends on the chain, and the registry says so.**
+`seatsRequireOrder` is a provider field, not a per-command guess:
+
+- `cinemark-ar` → `true`. Reading the seat map requires opening an order, so the
+  command is write-soft and lives under `CONTRACT-AUTH.md` with its gates.
+- `cinepolis-ar` → `false`. The seat map is an anonymous query over `sessionId`:
+  no account, no order, no inventory held. Verified across 7 sessions in 2
+  theaters, one of them never visited in the browser. So for that chain
+  `butacas` is read-only and belongs in this file, and `--dry-run` reports
+  `wouldOpenOrder: false`.
+
+The rest of this section describes the Cinemark surface, which is what made the
+split necessary in the first place.
 
 The target's second surface **is now built**, under `CONTRACT-AUTH.md`. The three
 properties that kept it out of this file are exactly why it lives in its own
@@ -64,8 +117,18 @@ butaca schema [command]               operation shapes, versioned
 Shorthand for the most common operation: `butaca <cine-slug>` is sugar for
 `butaca funciones --cine <slug>`, because that is the ninety-percent case.
 
-Global: `--json`, `--fields <a,b>`, `--no-cache`, `--open`, `--help`,
-`--version`.
+Global: `--json`, `--fields <a,b>`, `--no-cache`, `--open`, `--cadena <id>`,
+`--help`, `--version`.
+
+`--cadena` elige la cadena de cines; sin él manda `butaca config set cadena`, y
+sin eso `cinemark-ar`. `butaca cadenas` lista las disponibles.
+
+**Un cine guardado pertenece a la cadena en la que se guardó.** Los slugs no se
+comparten entre cadenas (`palermo` es de Cinemark,
+`cinepolis-recoleta-buenos-aires` es de Cinépolis), así que al cambiar de cadena
+la preferencia se ignora en vez de aplicarse como filtro: filtrar por un cine
+inexistente devuelve vacío con `ok: true`, que se lee como "no hay funciones". Un
+`--cine` explícito siempre gana.
 
 ## Output mode
 
@@ -82,6 +145,10 @@ Every command, success:
 ```json
 { "ok": true, "data": [], "meta": { "source": "bff.cinemark.com.ar", "fetchedAt": "...", "cached": false } }
 ```
+
+`meta.source` es el host de la cadena que respondió, no una constante:
+`bff.cinemark.com.ar` para `cinemark-ar`, `api-g.cinepolis.com` para
+`cinepolis-ar`.
 
 Every command, failure:
 

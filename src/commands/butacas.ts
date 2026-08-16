@@ -1,5 +1,7 @@
+import { contarButacas, fetchCities, fetchSeats } from "../api-graphql.js";
 import { ApiError, fetchMovies, fetchShowtimesByTheater, fetchTheaters } from "../api.js";
 import { buildTicketList, fetchPrices, openOrder, fetchSeatMap } from "../api-auth.js";
+import type { Provider } from "../providers.js";
 import { auditPending, auditResolve, newAuditId } from "../audit-log.js";
 import { guardarOrden, olvidarOrden, ordenVigente } from "../order-cache.js";
 import { currentSession } from "../auth.js";
@@ -116,7 +118,149 @@ export function buildButacasPayload(params: {
   };
 }
 
-export async function runButacas(options: ButacasOptions, flags: Flags, machineMode: boolean): Promise<number> {
+/**
+ * Butacas de una cadena que las publica sin abrir orden.
+ *
+ * Es el caso de Cinépolis: el mapa se lee con una query anónima sobre
+ * `sessionId`, así que este camino no toca sesión, no toma inventario y no pasa
+ * por el trust ladder. Esa diferencia está declarada en el registro
+ * (`seatsRequireOrder`), no inferida acá.
+ */
+async function runButacasSinOrden(
+  provider: Provider,
+  options: ButacasOptions,
+  flags: Flags,
+  machineMode: boolean,
+): Promise<number> {
+  try {
+    if (!options.cine) {
+      return reportError(
+        machineMode,
+        new ApiError(
+          "BAD_INPUT",
+          "butacas necesita --cine <slug> para saber a qué complejo pertenece la función",
+          "Corré `butaca cines` para ver los slugs disponibles.",
+        ),
+      );
+    }
+
+    // La consulta de butacas pide el id numérico del cine, no el slug. Se
+    // resuelve contra el listado porque son dos identificadores distintos y no
+    // hay forma de derivar uno del otro.
+    const cities = await fetchCities(provider);
+    const cine = cities.flatMap((c) => c.cinemas).find((c) => c.id === options.cine);
+    if (!cine) {
+      return reportError(
+        machineMode,
+        new ApiError(
+          "NOT_FOUND",
+          `No existe un cine con slug "${options.cine}"`,
+          "Corré `butaca cines` para ver los slugs disponibles.",
+        ),
+      );
+    }
+
+    // dry-run mantiene su contrato: explica el plan sin pegarle a la red. Acá el
+    // plan es más corto justamente porque no hay orden que abrir.
+    if (options.dryRun) {
+      const explicacion = {
+        wouldOpenOrder: false,
+        sessionId: options.sessionId,
+        cinemaId: cine.vistaId,
+        steps: ["POST /v1/ticket/graphql (query Seats)"],
+      };
+      if (machineMode) {
+        printEnvelope(ok(explicacion));
+        return 0;
+      }
+      process.stdout.write(
+        `${dim("Sin efectos: esta cadena publica el mapa de butacas sin abrir una orden.")}\n` +
+          `${dim(`Pediría: query Seats(sessionId=${options.sessionId}, cinemaVistaId=${cine.vistaId})`)}\n`,
+      );
+      return 0;
+    }
+
+    const map = await fetchSeats(provider, options.sessionId, cine.vistaId);
+    if (map.seats.length === 0) {
+      return reportError(
+        machineMode,
+        new ApiError(
+          "SEATS_UNAVAILABLE",
+          `No hay mapa de butacas para la función ${options.sessionId}`,
+          "Verificá el sessionId con `butaca funciones --cine " + options.cine + "`.",
+        ),
+      );
+    }
+
+    const conteo = contarButacas(map);
+    const filas = new Map<string, typeof map.seats>();
+    // `rowIndex` descendente: el upstream numera desde el fondo de la sala
+    // (rowIndex 0 es la fila L, la última), así que dibujarlo en su orden deja
+    // la fila A abajo. En la sala y en el sitio, A es la más cercana a la
+    // pantalla y va arriba.
+    for (const s of [...map.seats].sort((a, b) => b.rowIndex - a.rowIndex)) {
+      filas.set(s.row, [...(filas.get(s.row) ?? []), s]);
+    }
+
+    if (machineMode) {
+      printEnvelope(
+        ok({
+          sessionId: options.sessionId,
+          cine: options.cine,
+          maxQuantity: map.maxQuantity,
+          seats: conteo,
+          filas: [...filas.entries()].map(([row, seats]) => ({
+            row,
+            libres: seats.filter((s) => s.status === "Empty").length,
+            total: seats.length,
+          })),
+        }),
+      );
+      return 0;
+    }
+
+    const ancho = Math.max(...[...filas.values()].map((s) => s.length));
+    const out: string[] = [
+      `${bold(`Función ${options.sessionId}`)} ${dim(`· ${options.cine}`)}`,
+      `${conteo.available} libres de ${conteo.capacity} ${dim(`(${conteo.pct}%)`)} ${dim(`· hasta ${map.maxQuantity} por compra`)}`,
+      "",
+      // Sin esto el mapa no dice hacia dónde se mira, y la fila A puede leerse
+      // como la del fondo.
+      `      ${dim("─".repeat(Math.max(ancho, 8)))}`,
+      `      ${dim("PANTALLA".padStart(Math.floor((Math.max(ancho, 8) + 8) / 2)))}`,
+      "",
+    ];
+    for (const [row, seats] of filas) {
+      const dibujo = seats
+        .sort((a, b) => a.columnIndex - b.columnIndex)
+        .map((s) => (s.status === "Empty" ? "·" : "×"))
+        .join("");
+      out.push(`  ${bold(row.padEnd(3))} ${dibujo}`);
+    }
+    out.push("");
+    out.push(dim("· libre   × ocupado o reservado"));
+    out.push(dim(`Comprar: ${provider.siteBase}`));
+
+    process.stdout.write(`${out.join("\n")}\n`);
+    return 0;
+  } catch (err) {
+    const apiError =
+      err instanceof ApiError
+        ? err
+        : new ApiError("UPSTREAM_ERROR", String(err), "Error inesperado, reportalo.");
+    return reportError(machineMode, apiError);
+  }
+}
+
+export async function runButacas(
+  provider: Provider,
+  options: ButacasOptions,
+  flags: Flags,
+  machineMode: boolean,
+): Promise<number> {
+  if (!provider.seatsRequireOrder) {
+    return runButacasSinOrden(provider, options, flags, machineMode);
+  }
   try {
     let cinemaId: string | null = null;
     if (options.cine) {
