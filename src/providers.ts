@@ -162,7 +162,10 @@ export function mensajeRuntimeFaltante(p: Provider, runtimeActual: string): stri
   return (
     `${p.name} necesita Bun y estás en ${runtimeActual}. ` +
     `Su servidor rechaza a cualquier otro cliente antes de responder, así que no es algo que el CLI pueda sortear. ` +
-    `Instalá Bun con: curl -fsSL https://bun.sh/install | bash — después corré el mismo comando con "bun x butaca". ` +
+    // `bun x butaca` NO alcanza: respeta el shebang del paquete (#!/usr/bin/env
+    // node) y termina corriendo bajo Node otra vez, o sea de vuelta en este
+    // mismo error. El flag `--bun` es el que fuerza el runtime.
+    `Instalá Bun con: curl -fsSL https://bun.sh/install | bash — después corré el mismo comando con "bun --bun x butaca". ` +
     `Para seguir sin instalar nada: butaca --cadena ${DEFAULT_PROVIDER_ID}`
   );
 }
