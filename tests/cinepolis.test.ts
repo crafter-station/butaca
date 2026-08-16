@@ -90,7 +90,7 @@ describe("comandos sugeridos", () => {
   // que exige otro runtime, `butaca funciones ...` pelado se copia y choca
   // contra el guard: el CLI enseñaba la invocación que él mismo rechaza.
   // Encontrado por Hunter copiando una fila de la tabla.
-  it("bajo Bun no prefija, porque el runtime ya sirve", () => {
+  it("no lleva prefijo de runtime: esa rama nunca se ejecutaría", () => {
     setInvocacion(resolveProvider("cinepolis-ar"));
     expect(comando("funciones --cine x")).toBe(
       "butaca funciones --cine x --cadena cinepolis-ar",

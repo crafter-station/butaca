@@ -153,32 +153,27 @@ export function resolveProvider(id: string, esCadenaGuardada = false): Provider 
 }
 
 /**
- * Estado del prefijo con el que se imprimen los comandos sugeridos.
+ * Sufijo con el que se imprimen los comandos sugeridos.
  *
- * Un comando que el CLI imprime tiene una sola función: que se copie y ande. Con
- * una cadena que exige otro runtime, `butaca funciones ...` pelado se copia y
- * choca contra el guard, o sea que el CLI enseña la invocación que él mismo
- * rechaza. El prefijo lo fija el CLI una vez al resolver la cadena, igual que
- * `setSource` y `setNoCache`.
+ * Un comando que el CLI imprime tiene una sola función: que se copie y ande.
+ * Sin `--cadena`, el comando copiado corre contra la cadena por defecto y
+ * devuelve otra cosa, o un NOT_FOUND si el slug pertenece a esta. Lo fija el CLI
+ * una vez al resolver la cadena, igual que `setSource` y `setNoCache`.
+ *
+ * NO lleva prefijo de runtime: bajo un runtime que la cadena no acepta,
+ * `resolveProvider` corta antes de que se imprima comando alguno, y bajo el
+ * runtime correcto el prefijo sobra. Un `bun --bun x` acá sería una rama que
+ * nunca se ejecuta.
  */
-let prefijoComando = "butaca";
 let sufijoCadena = "";
 
 export function setInvocacion(p: Provider): void {
-  // `bun x` NO alcanza: respeta el shebang del paquete (#!/usr/bin/env node) y
-  // vuelve a caer en Node. Solo `--bun` fuerza el runtime.
-  prefijoComando = p.requiresRuntime === "bun" && !isBun() ? "bun --bun x butaca" : "butaca";
-  // Sin `--cadena` el comando copiado corre contra la cadena por defecto y
-  // devuelve otra cosa, o un NOT_FOUND si el slug es de esta.
   sufijoCadena = p.id === DEFAULT_PROVIDER_ID ? "" : ` --cadena ${p.id}`;
 }
 
-/**
- * Arma un comando listo para copiar: prefijo de runtime si hace falta, y la
- * cadena explícita cuando no es la default.
- */
+/** Arma un comando listo para copiar, con la cadena explícita si no es la default. */
 export function comando(resto: string): string {
-  return `${prefijoComando} ${resto}${sufijoCadena}`;
+  return `butaca ${resto}${sufijoCadena}`;
 }
 
 /**
