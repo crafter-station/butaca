@@ -1,6 +1,6 @@
 {
   "name": "butaca",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Cartelera, funciones y recomendación de butacas contiguas de Cinemark Argentina desde la terminal.",
   "license": "MIT",
   "author": "Railly Hugo",

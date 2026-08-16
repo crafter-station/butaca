@@ -64,6 +64,18 @@ describe("guard de runtime", () => {
     expect(msg).toContain("bun.sh/install");
     expect(msg).toContain("--cadena cinemark-ar");
   });
+
+  // Encontrado corriendo el paquete ya publicado en npm: `bun x butaca`
+  // respeta el shebang (#!/usr/bin/env node) y vuelve a ejecutar bajo Node, o
+  // sea que aterriza en este mismo error. El mensaje que existe para desatascar
+  // al usuario lo mandaba a un callejón. Solo `--bun` fuerza el runtime.
+  it("sugiere la invocación que realmente usa Bun, no la que cae a Node", () => {
+    const p = findProvider("cinepolis-ar");
+    if (!p) throw new Error("cinepolis-ar debería estar en el registro");
+    const msg = mensajeRuntimeFaltante(p, "Node 26.4.0");
+    expect(msg).toContain("bun --bun x butaca");
+    expect(msg).not.toMatch(/[^-]bun x butaca/);
+  });
 });
 
 describe("preferencia de cine entre cadenas", () => {
