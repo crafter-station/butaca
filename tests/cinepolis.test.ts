@@ -6,7 +6,13 @@ import { cineEfectivo, setPref } from "../src/prefs.js";
 import { contarButacas } from "../src/api-graphql.js";
 import { BUTACAS_MAX_LOOKUPS } from "../src/commands/funciones.js";
 import type { CinepolisSeatMap } from "../src/api-graphql.js";
-import { findProvider, mensajeRuntimeFaltante, resolveProvider } from "../src/providers.js";
+import {
+  comando,
+  findProvider,
+  mensajeRuntimeFaltante,
+  resolveProvider,
+  setInvocacion,
+} from "../src/providers.js";
 import { isBun, runtimeName } from "../src/runtime.js";
 
 describe("cinepolis-ar en el registro", () => {
@@ -76,6 +82,48 @@ describe("guard de runtime", () => {
     const msg = mensajeRuntimeFaltante(p, "Node 26.4.0");
     expect(msg).toContain("bun --bun x butaca");
     expect(msg).not.toMatch(/[^-]bun x butaca/);
+  });
+});
+
+describe("comandos sugeridos", () => {
+  // Un comando que el CLI imprime existe para copiarse y andar. Bajo una cadena
+  // que exige otro runtime, `butaca funciones ...` pelado se copia y choca
+  // contra el guard: el CLI enseñaba la invocación que él mismo rechaza.
+  // Encontrado por Hunter copiando una fila de la tabla.
+  it("bajo Bun no prefija, porque el runtime ya sirve", () => {
+    setInvocacion(resolveProvider("cinepolis-ar"));
+    expect(comando("funciones --cine x")).toBe(
+      "butaca funciones --cine x --cadena cinepolis-ar",
+    );
+  });
+
+  // Sin --cadena el comando copiado corre contra la default y devuelve otra
+  // cosa, o NOT_FOUND si el slug es de esta cadena.
+  it("incluye la cadena cuando no es la default", () => {
+    setInvocacion(resolveProvider("cinepolis-ar"));
+    expect(comando("cines")).toContain("--cadena cinepolis-ar");
+  });
+
+  it("no ensucia los comandos de la cadena default", () => {
+    setInvocacion(resolveProvider("cinemark-ar"));
+    expect(comando("funciones --cine palermo")).toBe("butaca funciones --cine palermo");
+  });
+});
+
+describe("mensaje del guard según de dónde salió la cadena", () => {
+  const p = resolveProvider("cinepolis-ar");
+
+  // Si la cadena está guardada en prefs, cada comando choca con el guard hasta
+  // que se cambie: decir "usá --cadena" no saca al usuario del estado.
+  it("con la cadena guardada, dice cómo revertir la preferencia", () => {
+    const msg = mensajeRuntimeFaltante(p, "Node 26.4.0", true);
+    expect(msg).toContain("butaca config set cadena cinemark-ar");
+  });
+
+  it("con la cadena pasada por flag, ofrece el flag de salida", () => {
+    const msg = mensajeRuntimeFaltante(p, "Node 26.4.0", false);
+    expect(msg).toContain("butaca --cadena cinemark-ar");
+    expect(msg).not.toContain("config set");
   });
 });
 

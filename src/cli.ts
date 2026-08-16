@@ -4,7 +4,7 @@ import { ArgParseError, isKnownCommand, knownCommands, parseArgs } from "./args.
 import { runCadenas } from "./commands/cadenas.js";
 import { runConfig } from "./commands/config.js";
 import { cadenaEfectiva, cineEfectivo } from "./prefs.js";
-import { resolveProvider } from "./providers.js";
+import { resolveProvider, setInvocacion } from "./providers.js";
 import type { Provider } from "./providers.js";
 import type { ParsedArgs } from "./args.js";
 import { runAuthLogin, runAuthLogout, runAuthStatus } from "./commands/auth.js";
@@ -24,7 +24,7 @@ import { ok, printEnvelope, resolveMachineMode, reportError, setSource } from ".
 import type { Flags } from "./format.js";
 import { blue, bold, dim, errBold, errDim, errRed, italic, padVisible, underline } from "./style.js";
 
-const VERSION = "0.3.2";
+const VERSION = "0.3.3";
 
 /** Comando en bold, flags en azul, placeholders en cursiva tenue. */
 function uso(comando: string, resto = "", nota = ""): string {
@@ -186,10 +186,14 @@ async function main(): Promise<number> {
   // usuario ve el motivo en vez de un error de red a mitad de camino.
   let provider: Provider;
   try {
-    provider = resolveProvider(cadenaEfectiva(args.cadena));
+    // Sin --cadena, la cadena salió de la preferencia guardada: el mensaje de
+    // error tiene que decir cómo revertirla, no cómo pasar un flag.
+    provider = resolveProvider(cadenaEfectiva(args.cadena), args.cadena === null);
     // El envelope publica de dónde salieron los datos; sin esto toda respuesta
     // decía el host de Cinemark, incluidas las de otra cadena.
     setSource(new URL(provider.apiBase).host);
+    // Los comandos que el CLI imprime tienen que poder copiarse y andar.
+    setInvocacion(provider);
   } catch (err) {
     return reportError(
       machineMode,

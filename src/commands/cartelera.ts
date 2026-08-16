@@ -4,6 +4,7 @@ import { ApiError, fetchMovies, fetchTheaters } from "../api.js";
 import { escapeText } from "../escape.js";
 import { applyFields, ok, printEnvelope, renderTable, reportError } from "../format.js";
 import type { Flags } from "../format.js";
+import { comando } from "../providers.js";
 import type { Provider } from "../providers.js";
 import { blue, bold, dim, formatearDuracion, italic } from "../style.js";
 import type { CarteleraMovie, RawCarteleraMovie } from "../types.js";
@@ -83,7 +84,7 @@ export async function runCartelera(
     const nextSteps =
       movies.length > 0 && movies[0]
         ? [
-            `butaca funciones --cine ${options.cine ?? "<slug-de-cine>"} --peli ${movies[0].slug}`,
+            comando(`funciones --cine ${options.cine ?? "<slug-de-cine>"} --peli ${movies[0].slug}`),
           ]
         : undefined;
     const rows = applyFields(movies as unknown as Array<Record<string, unknown>>, flags.fields);
@@ -115,7 +116,7 @@ export async function runCartelera(
     const cine = options.cine ?? "<cine>";
     process.stdout.write(
       `${renderTable(humanRows, ["pelicula", "dura", "apta", "formatos", "--peli"])}\n` +
-        `\n${dim(`Horarios de una: ${italic(`butaca funciones --cine ${cine} --peli <slug>`)}`)}\n`,
+        `\n${dim(`Horarios de una: ${italic(comando(`funciones --cine ${cine} --peli <slug>`))}`)}\n`,
     );
     return 0;
   } catch (err) {
