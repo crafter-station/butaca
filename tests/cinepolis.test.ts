@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cineEfectivo, setPref } from "../src/prefs.js";
 import { contarButacas } from "../src/api-graphql.js";
+import { BUTACAS_MAX_LOOKUPS } from "../src/commands/funciones.js";
 import type { CinepolisSeatMap } from "../src/api-graphql.js";
 import { findProvider, mensajeRuntimeFaltante, resolveProvider } from "../src/providers.js";
 import { isBun, runtimeName } from "../src/runtime.js";
@@ -128,6 +129,17 @@ describe("preferencia de cine entre cadenas", () => {
     expect(cineEfectivo("cinepolis-recoleta-buenos-aires", "cinepolis-ar")).toBe(
       "cinepolis-recoleta-buenos-aires",
     );
+  });
+});
+
+describe("tope de consultas de butacas", () => {
+  // El tope decide si el caso más común del CLI (`butaca <cine>`, que muestra un
+  // día) trae butacas o muestra 0/0 en cada fila. Estaba en 40 y el día pico
+  // medido de la cadena es 55, así que 3 de 5 cines quedaban sin el dato. El
+  // número tiene que cubrir el peor día real, no una estimación.
+  const PICO_MEDIDO_POR_DIA = 55; // avellaneda, 2026-08-16
+  it("cubre el día más cargado observado en la cadena", () => {
+    expect(BUTACAS_MAX_LOOKUPS).toBeGreaterThanOrEqual(PICO_MEDIDO_POR_DIA);
   });
 });
 
