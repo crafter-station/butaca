@@ -381,8 +381,11 @@ async function runFuncionesGraphql(
     }
 
     if (!necesitaButacas) {
+      // El conteo es el de lo que se hubiera consultado, no el total del mes:
+      // decir "son 193 funciones" con 44 en pantalla contradice lo que el
+      // usuario está mirando.
       out.push(
-        `\n${dim(italic(`Butacas libres no consultadas: son ${funciones.length} funciones y cada una es un pedido aparte. Acotá con --fecha o --peli para verlas.`))}`,
+        `\n${dim(italic(`Butacas libres no consultadas: son ${aConsultar.length} funciones y cada una es un pedido aparte. Acotá con --fecha o --peli para verlas.`))}`,
       );
     }
 
@@ -417,13 +420,17 @@ async function runFuncionesGraphql(
 /**
  * Tope de consultas de butacas en una sola corrida.
  *
- * No es un límite inventado: cada función es un pedido HTTP a un servicio de
- * terceros, y la cartelera completa de un cine llega a 242 funciones. El valor
- * cubre un día típico de un cine (los diez cines medidos van de 68 a 242
- * funciones repartidas en 5 a 19 fechas) sin convertir un comando de lectura en
- * doscientos pedidos.
+ * Cada función es un pedido HTTP a un servicio de terceros y la cartelera
+ * completa de un cine llega a 242 funciones, así que hace falta un techo. El
+ * valor sale de medir el día más cargado de cada cine (2026-08-16):
+ *
+ *   avellaneda 55 · recoleta 44 · mendoza 44 · pilar 40 · rosario 36
+ *
+ * Consultar esas 55 en paralelo tarda 4.5s. El tope cubre el peor día real de
+ * la cadena con margen; un valor menor deja el caso más común del CLI
+ * (`butaca <cine>`, que muestra un día) sin el dato que lo hace útil.
  */
-const BUTACAS_MAX_LOOKUPS = 40;
+export const BUTACAS_MAX_LOOKUPS = 70;
 
 export async function runFunciones(
   provider: Provider,
