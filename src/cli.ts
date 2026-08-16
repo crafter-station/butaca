@@ -24,7 +24,7 @@ import { ok, printEnvelope, resolveMachineMode, reportError, setSource } from ".
 import type { Flags } from "./format.js";
 import { blue, bold, dim, errBold, errDim, errRed, italic, padVisible, underline } from "./style.js";
 
-const VERSION = "0.3.6";
+const VERSION = "0.4.0";
 
 /** Comando en bold, flags en azul, placeholders en cursiva tenue. */
 function uso(comando: string, resto = "", nota = ""): string {
