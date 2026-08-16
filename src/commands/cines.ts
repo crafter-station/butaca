@@ -1,7 +1,10 @@
+import { fetchCities } from "../api-graphql.js";
+import type { CinepolisCinema } from "../api-graphql.js";
 import { ApiError, fetchTheaters } from "../api.js";
 import { escapeText } from "../escape.js";
 import { applyFields, ok, printEnvelope, renderTable, reportError } from "../format.js";
 import type { Flags } from "../format.js";
+import type { Provider } from "../providers.js";
 import { bold, dim, italic, underline } from "../style.js";
 import type { RawTheater, Theater } from "../types.js";
 
@@ -18,10 +21,41 @@ export function toTheater(raw: RawTheater): Theater {
   };
 }
 
-export async function runCines(flags: Flags, machineMode: boolean): Promise<number> {
+/**
+ * Cinépolis identifica cada cine dos veces y los dos ids se usan en lugares
+ * distintos: el slug va en la cartelera, el `vistaId` numérico en el mapa de
+ * butacas. `slug` mantiene el contrato publicado (es lo que el usuario tipea);
+ * el `vistaId` viaja en `id` porque es el que los comandos siguientes necesitan.
+ */
+function cinepolisToTheater(c: CinepolisCinema, cityName: string): Theater {
+  return {
+    id: Number(c.vistaId),
+    slug: c.id,
+    name: escapeText(c.name),
+    address: "",
+    city: escapeText(cityName),
+    region: escapeText(cityName),
+    lat: c.lat,
+    lng: c.lng,
+  };
+}
+
+async function listarCines(provider: Provider): Promise<Theater[]> {
+  if (provider.kind === "graphql") {
+    const cities = await fetchCities(provider);
+    return cities.flatMap((city) => city.cinemas.map((c) => cinepolisToTheater(c, city.name)));
+  }
+  const raw = await fetchTheaters();
+  return raw.map(toTheater);
+}
+
+export async function runCines(
+  provider: Provider,
+  flags: Flags,
+  machineMode: boolean,
+): Promise<number> {
   try {
-    const raw = await fetchTheaters();
-    const theaters = raw.map(toTheater);
+    const theaters = await listarCines(provider);
     const rows = applyFields(theaters as unknown as Array<Record<string, unknown>>, flags.fields);
 
     if (machineMode) {

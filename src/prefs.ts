@@ -62,7 +62,26 @@ export function cadenaEfectiva(flag?: string | null): string {
   return candidata;
 }
 
-/** Cine efectivo. Devuelve null si no hay ninguno, para que el comando decida. */
-export function cineEfectivo(flag?: string | null): string | null {
-  return flag ?? process.env.BUTACA_CINE ?? loadPrefs().cine ?? null;
+/**
+ * Cine efectivo. Devuelve null si no hay ninguno, para que el comando decida.
+ *
+ * El cine guardado pertenece a la cadena en la que se guardó: los slugs no se
+ * comparten entre cadenas ("palermo" es de Cinemark,
+ * "cinepolis-recoleta-buenos-aires" es de Cinépolis). Si la cadena activa no es
+ * aquella, la preferencia se ignora en vez de aplicarse como filtro: filtrar por
+ * un cine que no existe en la cadena consultada devuelve vacío en silencio, que
+ * se lee como "no hay cartelera" y es peor que no filtrar.
+ *
+ * Un flag o una variable de entorno explícitos siempre ganan: si el usuario lo
+ * escribió, no hay nada que adivinar.
+ */
+export function cineEfectivo(flag?: string | null, cadenaActiva?: string): string | null {
+  if (flag) return flag;
+  if (process.env.BUTACA_CINE) return process.env.BUTACA_CINE;
+
+  const prefs = loadPrefs();
+  if (!prefs.cine) return null;
+  const cadenaDelCine = prefs.cadena ?? DEFAULT_PROVIDER_ID;
+  if (cadenaActiva && cadenaDelCine !== cadenaActiva) return null;
+  return prefs.cine;
 }

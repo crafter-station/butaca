@@ -3,7 +3,9 @@ import { ApiError, setNoCache } from "./api.js";
 import { ArgParseError, isKnownCommand, knownCommands, parseArgs } from "./args.js";
 import { runCadenas } from "./commands/cadenas.js";
 import { runConfig } from "./commands/config.js";
-import { cineEfectivo } from "./prefs.js";
+import { cadenaEfectiva, cineEfectivo } from "./prefs.js";
+import { resolveProvider } from "./providers.js";
+import type { Provider } from "./providers.js";
 import type { ParsedArgs } from "./args.js";
 import { runAuthLogin, runAuthLogout, runAuthStatus } from "./commands/auth.js";
 import { runButacas } from "./commands/butacas.js";
@@ -16,12 +18,13 @@ import { runReservar } from "./commands/reservar.js";
 import { runRecomendar } from "./commands/recomendar.js";
 import { runSchema } from "./commands/schema.js";
 import { fetchTheaters } from "./api.js";
+import { fetchCities } from "./api-graphql.js";
 import { printBanner } from "./foundation/banner.js";
-import { ok, printEnvelope, resolveMachineMode, reportError } from "./format.js";
+import { ok, printEnvelope, resolveMachineMode, reportError, setSource } from "./format.js";
 import type { Flags } from "./format.js";
 import { blue, bold, dim, errBold, errDim, errRed, italic, padVisible, underline } from "./style.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 /** Comando en bold, flags en azul, placeholders en cursiva tenue. */
 function uso(comando: string, resto = "", nota = ""): string {
@@ -117,7 +120,13 @@ function validateFecha(fecha: string | null): string | null {
   return fecha;
 }
 
-async function resolveShorthand(token: string): Promise<boolean> {
+async function resolveShorthand(provider: Provider, token: string): Promise<boolean> {
+  // El atajo `butaca <cine>` tiene que reconocer los slugs de la cadena activa,
+  // no siempre los de Cinemark.
+  if (provider.kind === "graphql") {
+    const cities = await fetchCities(provider);
+    return cities.some((c) => c.cinemas.some((x) => x.id === token));
+  }
   const theaters = await fetchTheaters();
   return theaters.some((t) => t.slug === token);
 }
@@ -172,12 +181,33 @@ async function main(): Promise<number> {
 
   const command = args.command;
 
+  // La cadena se resuelve una sola vez, antes de cualquier pedido. Acá es donde
+  // se rechaza una cadena sin recon o un runtime que su servidor no acepta: el
+  // usuario ve el motivo en vez de un error de red a mitad de camino.
+  let provider: Provider;
+  try {
+    provider = resolveProvider(cadenaEfectiva(args.cadena));
+    // El envelope publica de dónde salieron los datos; sin esto toda respuesta
+    // decía el host de Cinemark, incluidas las de otra cadena.
+    setSource(new URL(provider.apiBase).host);
+  } catch (err) {
+    return reportError(
+      machineMode,
+      new ApiError(
+        "BAD_INPUT",
+        err instanceof Error ? err.message : String(err),
+        "Corré `butaca cadenas` para ver las disponibles.",
+      ),
+    );
+  }
+
   if (!isKnownCommand(command)) {
-    const isShorthand = await resolveShorthand(command).catch(() => false);
+    const isShorthand = await resolveShorthand(provider, command).catch(() => false);
     if (isShorthand) {
       try {
         const fecha = validateFecha(args.fecha);
         return await runFunciones(
+          provider,
           {
             cine: command,
             peli: args.peli,
@@ -206,8 +236,9 @@ async function main(): Promise<number> {
 
   // El flag gana, después la variable de entorno, después lo guardado en
   // `butaca config set cine`. Sin esto había que repetir --cine en cada llamada,
-  // que es la fricción diaria más obvia del CLI.
-  const cine = cineEfectivo(args.cine);
+  // que es la fricción diaria más obvia del CLI. La cadena activa entra para que
+  // un cine guardado de otra cadena no se aplique como filtro y devuelva vacío.
+  const cine = cineEfectivo(args.cine, provider.id);
 
   switch (command) {
     case "cadenas":
@@ -217,10 +248,10 @@ async function main(): Promise<number> {
       return runConfig(args.positional[0] ?? null, args.positional[1] ?? null, args.positional[2] ?? null, machineMode);
 
     case "cines":
-      return runCines(flags, machineMode);
+      return runCines(provider, flags, machineMode);
 
     case "cartelera":
-      return runCartelera({ cine: cine }, flags, machineMode);
+      return runCartelera(provider, { cine: cine }, flags, machineMode);
 
     case "funciones": {
       if (!cine) {
@@ -236,6 +267,7 @@ async function main(): Promise<number> {
       try {
         const fecha = validateFecha(args.fecha);
         return await runFunciones(
+          provider,
           {
             cine: cine,
             peli: args.peli,
@@ -345,7 +377,7 @@ async function main(): Promise<number> {
           new ApiError("BAD_INPUT", "butacas necesita un sessionId", "Ejemplo: butaca butacas 159037 --cine palermo"),
         );
       }
-      return runButacas({ sessionId, cine: cine, dryRun: args.dryRun }, flags, machineMode);
+      return runButacas(provider, { sessionId, cine: cine, dryRun: args.dryRun }, flags, machineMode);
     }
 
     case "reservar": {

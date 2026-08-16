@@ -18,9 +18,24 @@ export function resolveMachineMode(flags: Flags): boolean {
   return flags.json || !process.stdout.isTTY;
 }
 
+/**
+ * Host que se reporta en `meta.source`.
+ *
+ * Es estado de módulo por la misma razón que `setNoCache`: `ok()` se llama desde
+ * todos los comandos y pasarle el provider a cada uno solo para nombrar la
+ * fuente sería ruido en veinte firmas. El CLI lo fija una vez al resolver la
+ * cadena. Sin fijarlo queda el de Cinemark, que era el único host cuando se
+ * escribió el envelope.
+ */
+let sourceActivo = source;
+
+export function setSource(host: string): void {
+  sourceActivo = host;
+}
+
 export function ok<T>(data: T, nextSteps?: string[]): Envelope<T> {
   const meta: EnvelopeMeta = {
-    source,
+    source: sourceActivo,
     fetchedAt: nowIso(),
     cached: false,
   };
