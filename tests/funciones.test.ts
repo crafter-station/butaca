@@ -191,4 +191,15 @@ describe("agruparPorPelicula", () => {
     const out = agruparPorPelicula([f("LA ODISEA", "11:00")], new Map(), "palermo");
     expect(out).not.toContain("--peli");
   });
+
+  // Ese comando existe para filtrar desde el listado completo. Con --peli ya
+  // pasado imprime exactamente el comando que se acaba de correr, y ocupa el
+  // lugar del próximo paso real, que es ver butacas de una función.
+  it("omite el comando cuando el usuario ya filtró por película", () => {
+    const slugs = new Map([["cid-LA ODISEA", "la-odisea"]]);
+    const out = agruparPorPelicula([f("LA ODISEA", "11:00")], slugs, "palermo", true);
+    expect(out).not.toContain("--peli la-odisea");
+    // La tabla sigue entera: se saca la línea redundante, no el contenido.
+    expect(out).toContain("11:00");
+  });
 });

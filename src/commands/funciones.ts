@@ -147,6 +147,13 @@ export function agruparPorPelicula(
   funciones: Funcion[],
   slugs: Map<string, string> = new Map(),
   cine = "",
+  /**
+   * `true` cuando el usuario ya pasó `--peli`. El comando por bloque existe para
+   * filtrar a una película desde el listado completo; una vez filtrado, imprime
+   * exactamente el comando que se acaba de correr y ocupa el lugar del próximo
+   * paso real, que es ver las butacas de una función.
+   */
+  yaFiltrado = false,
 ): string {
   // Agrupado por corporateId y no por nombre: la clave de display descarta el
   // identificador, y el slug es lo que se pasa a --peli.
@@ -170,7 +177,7 @@ export function agruparPorPelicula(
       const slug = slugs.get(corporateId);
       // El comando entero, no el slug pelado: se copia sin armarlo a mano.
       const comando =
-        slug && cine
+        slug && cine && !yaFiltrado
           ? `\n  ${dim(cmd(`funciones --cine ${cine} --peli ${slug}`))}`
           : "";
       const titulo = `${bold(nombre)}  ${dim("·")} ${meta}  ${dim(`· ${fs.length} funciones`)}${comando}`;
@@ -378,7 +385,7 @@ async function runFuncionesGraphql(
       // Los ids de película de Cinépolis ya son slugs legibles, así que el mapa
       // de slugs es la identidad y no hace falta resolverlo con otra llamada.
       const slugs = new Map(visibles.map((f) => [f.movie.corporateId, f.movie.corporateId]));
-      out.push(agruparPorPelicula(visibles, slugs, options.cine));
+      out.push(agruparPorPelicula(visibles, slugs, options.cine, options.peli !== null));
     }
 
     if (!necesitaButacas) {
@@ -528,7 +535,7 @@ export async function runFunciones(
     } else {
       // El título se repetía hasta 14 veces y era la columna más ancha.
       // Agrupado, el nombre va una vez y las funciones quedan por horario.
-      out.push(agruparPorPelicula(visibles, slugs, options.cine));
+      out.push(agruparPorPelicula(visibles, slugs, options.cine, options.peli !== null));
     }
 
     const spark = sparklineDelDia(visibles);
