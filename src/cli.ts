@@ -181,6 +181,24 @@ async function main(): Promise<number> {
 
   const command = args.command;
 
+  // Estos tres no tocan la red ni dependen de la cadena activa, así que se
+  // despachan ANTES de resolverla. Es lo que rompió 0.4.0: con una cadena
+  // guardada que exige un runtime ausente, `resolveProvider` tiraba en el
+  // arranque y se llevaba puestos justo los comandos que servían para salir
+  // del estado. El mensaje de error decía "volvé con: butaca config set cadena
+  // cinemark-ar" y ese comando moría en el mismo throw. La única salida era
+  // editar prefs.json a mano.
+  if (command === "cadenas") return runCadenas(machineMode);
+  if (command === "config") {
+    return runConfig(
+      args.positional[0] ?? null,
+      args.positional[1] ?? null,
+      args.positional[2] ?? null,
+      machineMode,
+    );
+  }
+  if (command === "schema") return runSchema(args.positional[0] ?? null, machineMode);
+
   // La cadena se resuelve una sola vez, antes de cualquier pedido. Acá es donde
   // se rechaza una cadena sin recon o un runtime que su servidor no acepta: el
   // usuario ve el motivo en vez de un error de red a mitad de camino.
@@ -245,12 +263,6 @@ async function main(): Promise<number> {
   const cine = cineEfectivo(args.cine, provider.id);
 
   switch (command) {
-    case "cadenas":
-      return runCadenas(machineMode);
-
-    case "config":
-      return runConfig(args.positional[0] ?? null, args.positional[1] ?? null, args.positional[2] ?? null, machineMode);
-
     case "cines":
       return runCines(provider, flags, machineMode);
 
@@ -348,9 +360,6 @@ async function main(): Promise<number> {
         return reportError(machineMode, apiError);
       }
     }
-
-    case "schema":
-      return runSchema(args.positional[0] ?? null, machineMode);
 
     case "auth": {
       const sub = args.positional[0];
