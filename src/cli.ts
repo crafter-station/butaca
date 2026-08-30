@@ -20,11 +20,18 @@ import { runSchema } from "./commands/schema.js";
 import { fetchTheaters } from "./api.js";
 import { fetchCities } from "./api-graphql.js";
 import { printBanner } from "./foundation/banner.js";
-import { ok, printEnvelope, resolveMachineMode, reportError, setSource } from "./format.js";
+import {
+  ok,
+  printEnvelope,
+  resolveMachineMode,
+  reportError,
+  setSource,
+  setSourceLocal,
+} from "./format.js";
 import type { Flags } from "./format.js";
 import { blue, bold, dim, errBold, errDim, errRed, italic, padVisible, underline } from "./style.js";
 
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 
 /** Comando en bold, flags en azul, placeholders en cursiva tenue. */
 function uso(comando: string, resto = "", nota = ""): string {
@@ -188,6 +195,13 @@ async function main(): Promise<number> {
   // del estado. El mensaje de error decía "volvé con: butaca config set cadena
   // cinemark-ar" y ese comando moría en el mismo throw. La única salida era
   // editar prefs.json a mano.
+  //
+  // Los tres leen disco y registro compilado, así que declaran `local` como
+  // fuente: dejar el host de una cadena en `meta.source` afirmaría una consulta
+  // remota que nunca ocurrió.
+  if (command === "cadenas" || command === "config" || command === "schema") {
+    setSourceLocal();
+  }
   if (command === "cadenas") return runCadenas(machineMode);
   if (command === "config") {
     return runConfig(

@@ -67,6 +67,13 @@ describe("salida del bloqueo por runtime", () => {
     expect(r.status).toBe(0);
   });
 
+  it("los comandos locales declaran source local, no el host de una cadena", () => {
+    const r = conCadenaGuardada("cinemark-ar", ["config", "--json"]);
+    expect(r.status).toBe(0);
+    const envelope = JSON.parse(r.stdout) as { meta: { source: string } };
+    expect(envelope.meta.source).toBe("local");
+  });
+
   it("un comando que sí pega a la red sigue bloqueado, con el motivo", () => {
     const r = conCadenaGuardada("cinepolis-ar", ["cines"]);
     expect(r.status).not.toBe(0);

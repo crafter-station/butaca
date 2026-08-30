@@ -1,7 +1,7 @@
 {
   "name": "butaca",
-  "version": "0.4.0",
-  "description": "Cartelera, funciones y recomendación de butacas contiguas de Cinemark Argentina desde la terminal.",
+  "version": "0.4.1",
+  "description": "Cartelera, funciones y recomendaci\u00f3n de butacas contiguas de Cinemark Argentina desde la terminal.",
   "license": "MIT",
   "author": "Railly Hugo",
   "homepage": "https://github.com/crafter-station/butaca#readme",
