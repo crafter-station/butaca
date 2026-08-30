@@ -20,11 +20,18 @@ import { runSchema } from "./commands/schema.js";
 import { fetchTheaters } from "./api.js";
 import { fetchCities } from "./api-graphql.js";
 import { printBanner } from "./foundation/banner.js";
-import { ok, printEnvelope, resolveMachineMode, reportError, setSource } from "./format.js";
+import {
+  ok,
+  printEnvelope,
+  resolveMachineMode,
+  reportError,
+  setSource,
+  setSourceLocal,
+} from "./format.js";
 import type { Flags } from "./format.js";
 import { blue, bold, dim, errBold, errDim, errRed, italic, padVisible, underline } from "./style.js";
 
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 
 /** Comando en bold, flags en azul, placeholders en cursiva tenue. */
 function uso(comando: string, resto = "", nota = ""): string {
@@ -181,6 +188,31 @@ async function main(): Promise<number> {
 
   const command = args.command;
 
+  // Estos tres no tocan la red ni dependen de la cadena activa, así que se
+  // despachan ANTES de resolverla. Es lo que rompió 0.4.0: con una cadena
+  // guardada que exige un runtime ausente, `resolveProvider` tiraba en el
+  // arranque y se llevaba puestos justo los comandos que servían para salir
+  // del estado. El mensaje de error decía "volvé con: butaca config set cadena
+  // cinemark-ar" y ese comando moría en el mismo throw. La única salida era
+  // editar prefs.json a mano.
+  //
+  // Los tres leen disco y registro compilado, así que declaran `local` como
+  // fuente: dejar el host de una cadena en `meta.source` afirmaría una consulta
+  // remota que nunca ocurrió.
+  if (command === "cadenas" || command === "config" || command === "schema") {
+    setSourceLocal();
+  }
+  if (command === "cadenas") return runCadenas(machineMode);
+  if (command === "config") {
+    return runConfig(
+      args.positional[0] ?? null,
+      args.positional[1] ?? null,
+      args.positional[2] ?? null,
+      machineMode,
+    );
+  }
+  if (command === "schema") return runSchema(args.positional[0] ?? null, machineMode);
+
   // La cadena se resuelve una sola vez, antes de cualquier pedido. Acá es donde
   // se rechaza una cadena sin recon o un runtime que su servidor no acepta: el
   // usuario ve el motivo en vez de un error de red a mitad de camino.
@@ -245,12 +277,6 @@ async function main(): Promise<number> {
   const cine = cineEfectivo(args.cine, provider.id);
 
   switch (command) {
-    case "cadenas":
-      return runCadenas(machineMode);
-
-    case "config":
-      return runConfig(args.positional[0] ?? null, args.positional[1] ?? null, args.positional[2] ?? null, machineMode);
-
     case "cines":
       return runCines(provider, flags, machineMode);
 
@@ -348,9 +374,6 @@ async function main(): Promise<number> {
         return reportError(machineMode, apiError);
       }
     }
-
-    case "schema":
-      return runSchema(args.positional[0] ?? null, machineMode);
 
     case "auth": {
       const sub = args.positional[0];

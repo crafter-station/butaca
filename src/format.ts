@@ -33,6 +33,19 @@ export function setSource(host: string): void {
   sourceActivo = host;
 }
 
+/**
+ * Fuente de los comandos que no salen a la red. `config`, `cadenas` y `schema`
+ * leen prefs del disco y el registro compilado; reportar el host de una cadena
+ * ahí es una afirmación falsa, y `meta` existe justamente para que un agente
+ * sepa de dónde salió el dato. `cached` queda en false porque no hay caché de
+ * CDN que evitar: el disco se lee siempre.
+ */
+export const SOURCE_LOCAL = "local";
+
+export function setSourceLocal(): void {
+  sourceActivo = SOURCE_LOCAL;
+}
+
 export function ok<T>(data: T, nextSteps?: string[]): Envelope<T> {
   const meta: EnvelopeMeta = {
     source: sourceActivo,

@@ -200,7 +200,8 @@ export function mensajeRuntimeFaltante(
   // choca con esto hasta que la cambie. Decirle "usá --cadena" no lo saca del
   // estado; decirle cómo revertir la preferencia sí.
   const salida = esCadenaGuardada
-    ? `Volvé a la cadena anterior con: butaca config set cadena ${DEFAULT_PROVIDER_ID}`
+    ? `O volvé a la cadena anterior sin instalar nada: butaca config set cadena ${DEFAULT_PROVIDER_ID} ` +
+      `(config, cadenas y schema andan bajo cualquier runtime, justamente para poder salir de acá).`
     : `Para seguir sin instalar nada: butaca --cadena ${DEFAULT_PROVIDER_ID}`;
   return (
     `${p.name} necesita Bun y estás en ${runtimeActual}. ` +
