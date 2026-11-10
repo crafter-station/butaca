@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { runCineplanet } from "./cineplanet.js";
 import { ApiError, setNoCache } from "./api.js";
 import { ArgParseError, isKnownCommand, knownCommands, parseArgs } from "./args.js";
 import { runCadenas } from "./commands/cadenas.js";
@@ -47,6 +48,8 @@ function opcion(flag: string, desc: string): string {
 }
 
 const helpText = (): string => `${dim("Cartelera, funciones y disponibilidad de butacas de Cinemark Argentina.")}
+
+${dim("Cineplanet Perú: --cadena cineplanet-pe; cines, cartelera, funciones, butacas y recomendar sin cuenta. Compra en el sitio. Fechas de Lima. No admite auth, elegir, reservar, estrenos ni --preflight.")}
 
 ${bold(underline("Uso"))}
 ${uso("butaca cines", "", "los 24 complejos")}
@@ -158,6 +161,7 @@ async function main(): Promise<number> {
   setNoCache(flags.noCache);
 
   if (args.version) {
+    setSourceLocal();
     if (machineMode) {
       printEnvelope(ok({ version: VERSION }));
     } else {
@@ -236,6 +240,8 @@ async function main(): Promise<number> {
       ),
     );
   }
+
+  if (provider.id === "cineplanet-pe") return runCineplanet(args, cineEfectivo(args.cine, provider.id), machineMode);
 
   if (!isKnownCommand(command)) {
     const isShorthand = await resolveShorthand(provider, command).catch(() => false);

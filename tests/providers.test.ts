@@ -9,11 +9,11 @@ describe("providers", () => {
     expect(p.salesChannelToken).toBeTruthy();
   });
 
-  // Una cadena declarada pero sin recon se rechaza al resolverla, no en medio de
-  // un fetch: el usuario merece saber que falta el mapeo, no ver un error de red.
-  it("una cadena planned falla con el motivo, no con un error de red", () => {
-    expect(() => resolveProvider("cineplanet-pe")).toThrow(/todavía no está soportada/);
-    expect(() => resolveProvider("cineplanet-pe")).toThrow(/403/);
+  it("Cineplanet Perú permite mapas sin abrir órdenes", () => {
+    const provider = resolveProvider("cineplanet-pe");
+    expect(provider.status).toBe("verified");
+    expect(provider.seatsRequireOrder).toBe(false);
+    expect(provider.apiBase).toBe("https://www.cineplanet.com.pe/api/v1-web");
   });
 
   it("una cadena desconocida lista las disponibles", () => {

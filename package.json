@@ -34,7 +34,9 @@
     "README.md",
     "CONTRACT.md",
     "CONTRACT-AUTH.md",
-    "LICENSE"
+    "LICENSE",
+    "PERU.md",
+    "PLANIFICACION.md"
   ],
   "engines": {
     "node": ">=20"
