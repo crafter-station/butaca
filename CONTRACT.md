@@ -1,3 +1,8 @@
+
+## Cineplanet Perú
+
+Consulta [PERU.md](PERU.md) para las capacidades de Perú. Con `--cadena cineplanet-pe`, los mapas y las recomendaciones no requieren cuenta ni abren órdenes; las reglas de autenticación de Cinemark no se aplican.
+
 # butaca, command surface and JSON contract
 
 Decided before code, per cli-build Phase 2. This file is the published contract.

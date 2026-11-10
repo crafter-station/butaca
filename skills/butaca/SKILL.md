@@ -2,6 +2,11 @@
 name: butaca
 description: Consultar cartelera, complejos y disponibilidad de butacas de Cinemark Argentina desde la terminal. Usar cuando el usuario pregunte qué películas dan, en qué cine, a qué hora, en qué formato (2D, 3D, XD, D-BOX, 4D, PREMIER), cuántas butacas quedan libres o quiera recomendar una función y asientos contiguos según la cantidad de personas. También cuando pida "qué veo hoy", "funciones en Palermo" o "entradas para X película". La mitad de lectura no necesita cuenta; ver el mapa de butacas y reservarlas sí. NO automatiza el pago.
 ---
+## Cineplanet Perú
+
+Consulta [PERU.md](../../PERU.md) para las capacidades de Perú. Con `--cadena cineplanet-pe`, los mapas y las recomendaciones no requieren cuenta ni abren órdenes; las reglas de autenticación de Cinemark no se aplican.
+
+
 
 # butaca
 

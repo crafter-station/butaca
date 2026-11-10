@@ -104,15 +104,13 @@ const CINEPLANET_PE: Provider = {
   name: "Cineplanet",
   country: "PE",
   countryName: "Perú",
-  // Sin verificar: son los hosts que el sitio usaría, no endpoints probados.
-  // No se llaman hasta que el recon los confirme.
   kind: "rest",
-  apiBase: "",
+  apiBase: "https://www.cineplanet.com.pe/api/v1-web",
   siteBase: "https://www.cineplanet.com.pe",
   countryHeader: "PE",
-  seatsRequireOrder: true,
-  status: "planned",
-  nota: "Su CDN responde 403 a todo pedido desde fuera de Perú (verificado con curl y navegador). Falta correr el recon desde una conexión peruana.",
+  seatsRequireOrder: false,
+  status: "verified",
+  nota: "Cineplanet Perú: cines, cartelera, funciones, butacas y recomendar sin cuenta. No reserva ni cobra. Sin precios ni estrenos.",
 };
 
 const PROVIDERS: Provider[] = [CINEMARK_AR, CINEPOLIS_AR, CINEPLANET_PE];

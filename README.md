@@ -1,3 +1,8 @@
+
+## Cineplanet Perú
+
+Consulta [PERU.md](PERU.md) para las capacidades de Perú. Con `--cadena cineplanet-pe`, los mapas y las recomendaciones no requieren cuenta ni abren órdenes; las reglas de autenticación de Cinemark no se aplican.
+
 # butaca
 
 Cartelera y disponibilidad de butacas de Cinemark Hoyts Argentina, desde la

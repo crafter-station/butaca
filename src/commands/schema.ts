@@ -1,7 +1,7 @@
 import { ok, printEnvelope, reportError } from "../format.js";
 import { ApiError } from "../api.js";
 
-export const SCHEMA_VERSION = "1.2.0";
+export const SCHEMA_VERSION = "1.2.1";
 
 export const SCHEMAS: Record<string, unknown> = {
   cines: {
@@ -44,7 +44,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     notes: [
       "seats.pct se calcula acá como available/capacity, no viene del upstream",
-      "dateTime está en hora local de Buenos Aires",
+      "dateTime: Cinemark usa hora local de Buenos Aires; Cineplanet usa ISO 8601 con offset de Lima (-05:00)",
     ],
   },
 
@@ -104,7 +104,7 @@ export const SCHEMAS: Record<string, unknown> = {
       siteUrl: "string | null",
     },
     notes:
-      "Abre una orden real en Cinemark (POST /order-tickets). Con --dry-run devuelve { wouldOpenOrder, sessionId, cinemaId, steps } y no llama a nada. siteUrl vuelve a la película pero no preserva la orden, porque el carrito vive en el storage local del navegador. Se exponen las dos representaciones de butaca a propósito: el humano lee row/number, order-set-seats solo acepta gridRow/gridNumber.",
+      "Cineplanet: consulta pública sin cuenta ni orden, transIdTemp=0 y sideEffect=none; --dry-run también es de solo lectura. Abre una orden real en Cinemark (POST /order-tickets). Con --dry-run devuelve { wouldOpenOrder, sessionId, cinemaId, steps } y no llama a nada. siteUrl vuelve a la película pero no preserva la orden, porque el carrito vive en el storage local del navegador. Se exponen las dos representaciones de butaca a propósito: el humano lee row/number, order-set-seats solo acepta gridRow/gridNumber.",
   },
   reservar: {
     version: SCHEMA_VERSION,
@@ -187,7 +187,7 @@ export const SCHEMAS: Record<string, unknown> = {
 SCHEMAS.recomendar = {
   ...(SCHEMAS.elegir as Record<string, unknown>),
   notes:
-    "Selecciona la función con más disponibilidad y recomienda el mejor grupo contiguo para --personas. --dry-run usa datos públicos. --preflight valida sesión y precio. Abrir el mapa requiere confirmación y crea una orden, pero recomendar no hace hold. Devuelve el comando reservar exacto en meta.nextSteps.",
+    "Cineplanet: consulta pública sin cuenta ni orden, price=null, sin --preflight ni reserva; --dry-run omite el mapa. Selecciona la función con más disponibilidad y recomienda el mejor grupo contiguo para --personas. --dry-run usa datos públicos. --preflight valida sesión y precio. Abrir el mapa requiere confirmación y crea una orden, pero recomendar no hace hold. Devuelve el comando reservar exacto en meta.nextSteps.",
 };
 
 export function runSchema(commandName: string | null, machineMode: boolean): number {

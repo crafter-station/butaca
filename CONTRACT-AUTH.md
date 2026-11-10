@@ -1,3 +1,8 @@
+
+## Cineplanet Perú
+
+Consulta [PERU.md](PERU.md) para las capacidades de Perú. Con `--cadena cineplanet-pe`, los mapas y las recomendaciones no requieren cuenta ni abren órdenes; las reglas de autenticación de Cinemark no se aplican.
+
 # butaca, superficie autenticada
 
 Contrato de los comandos que necesitan cuenta. Escrito antes del código, per
